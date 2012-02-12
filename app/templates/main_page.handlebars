@@ -1,0 +1,15 @@
+<div class="row">
+	<div class="span4">&nbsp;</div>
+	<div class="span4 well">
+		<p>
+			{{view Em.TextField class="input full-width" valueBinding="App.user.name" placeholder="Your Name"}}
+		</p>
+		<p>
+			{{#view Em.Button action="showPresenterLogin" target="App.stateManager" class="btn btn-large btn-primary full-width"}}<i class="modern-icon modern-icon-white">S</i> I am Presenting{{/view}}
+		</p>
+		<p>
+			{{#view Em.Button class="btn btn-large btn-primary full-width"}}<i class="modern-icon modern-icon-white">E</i> I am Viewing{{/view}}
+		</p>
+	</div>
+	<div class="span4"/>&nbsp;</div>
+</div>

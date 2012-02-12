@@ -1,0 +1,19 @@
+<div class="row">
+<div class="span4">&nbsp;</div>
+<div class="span4 well">
+	Alfresco Credentials for {{App.user.name}}
+	
+	<p>
+		{{view Em.TextField class="input span4" placeholder="Login" valueBinding="App.user.alf_login"}}
+	</p>
+	<p>
+		{{view Em.TextField class="input span4" placeholder="Password" type="password" valueBinding="App.user.alf_password"}}
+	</p>
+	<div class="form-actions">
+		{{#view Em.Button action="login" target="App.stateManager" class="btn btn-large btn-primary"}}Login{{/view}}
+
+		{{#view Em.Button class="btn btn-large"}}Cancel{{/view}}
+	</div>
+</div>
+<div class="span4"/>&nbsp;</div>
+</div>

@@ -1,0 +1,7 @@
+.DS_Store
+rebuild
+tmp/
+assets/
+.idea/
+node_modules/
+.bundle/
