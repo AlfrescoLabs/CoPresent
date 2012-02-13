@@ -29,6 +29,7 @@ App.presenterState = Em.State.create({
 		//TODO load document after selection
 		enter: function(sm) {
 			Em.Logger.log('loadingDocument');
+			this.set('siteList', App.Sites.create());
 		},
 		
 		initialSubstate: 'browsingSites',
@@ -41,7 +42,8 @@ App.presenterState = Em.State.create({
 				Em.Logger.log('browsingSites');
 			    var view = this.get('view');
 			    if (view) {
-			      view.appendTo('#doc-share');
+					view.set('content', this.getPath('parentState.siteList')),
+			      	view.appendTo('#doc-share');
 			    }
 			}
 		}),

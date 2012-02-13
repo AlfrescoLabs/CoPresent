@@ -27,13 +27,58 @@ App.user = Em.Object.create({
 	isPresenter: false
 });
 
-App.alfController = Em.ArrayProxy.create({
+App.Folder = Em.ArrayProxy.extend({
+	siteTitle: '',
+	siteId: '',
+	folderPath: '/',
+	metadata: undefined,
+	
 	content: [],
 	
-	loadSites: function() {
+	folders: function(){
+		return this.filterProperty('node.isContainer', true);
+	}.property('children').cacheable(),
+	 
+	docs: function(){
+		return this.filterProperty('node.isContainer', true);
+	}.property('children').cacheable(),
+	
+	init: function() {
+		var data = null;
+		
+		App.alf.getDocList({
+			site: this.get('siteId'),
+			model: 'cm:content',
+			container: 'documentLibrary',
+			folderPath: '/'
+		}, function(data){
+			this.set('metadata', data.metadata);
+			
+			this.set('content', data.items);
+		});
+	}
+	
+});
+
+
+
+App.Sites = Em.ArrayProxy.extend({
+	content: [],
+	
+	init: function() {
 		var _self = this;
 		App.alf.getSites(function(data){
+			console.log('Getting Sites '+data.length);
 			_self.set('content', data);
 		});
-	}		
+	},
+	
+	getSiteDocLib: function(idx) {
+		var item = this.objectAt(idx);
+		return App.Folder.create({
+			siteId: item.shortName,
+			siteTitle: item.title,
+			folderPath: '/'
+		});
+	}	
 });

@@ -1,1 +1,4 @@
-<h1>Select Document</h1>
+<h1>Select Site</h1>
+{{#each content}}
+	{{#view Em.View contentBinding="this"}}{{content.title}}{{/view}}
+{{/each}}
