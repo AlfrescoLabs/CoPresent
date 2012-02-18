@@ -45,16 +45,16 @@ App.Folder = Em.ArrayProxy.extend({
 	
 	init: function() {
 		var data = null;
-		
+		var _self = this;
 		App.alf.getDocList({
 			site: this.get('siteId'),
 			model: 'cm:content',
 			container: 'documentLibrary',
-			folderPath: '/'
+			folderPath: this.get('folderPath')
 		}, function(data){
-			this.set('metadata', data.metadata);
+			_self.set('metadata', data.metadata);
 			
-			this.set('content', data.items);
+			_self.set('content', data.items);
 		});
 	}
 	
@@ -72,13 +72,21 @@ App.Sites = Em.ArrayProxy.extend({
 			_self.set('content', data);
 		});
 	},
-	
+
+    getDocLib: function(node) {
+        return App.Folder.create({
+                    siteId: node.shortName,
+                    siteTitle: node.title,
+                    folderPath: '/'
+                });
+    },
+
 	getSiteDocLib: function(idx) {
 		var item = this.objectAt(idx);
 		return App.Folder.create({
 			siteId: item.shortName,
 			siteTitle: item.title,
-			folderPath: '/'
+			folderPath: ''
 		});
 	}	
 });

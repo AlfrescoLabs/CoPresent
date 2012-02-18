@@ -29,7 +29,7 @@ App.presenterState = Em.State.create({
 		//TODO load document after selection
 		enter: function(sm) {
 			Em.Logger.log('loadingDocument');
-			this.set('siteList', App.Sites.create());
+			App.presenterState.set('siteList', App.Sites.create());
 		},
 		
 		initialSubstate: 'browsingSites',
@@ -38,11 +38,12 @@ App.presenterState = Em.State.create({
 			view: Em.View.create({
 				templateName: 'copresent/~templates/presenter_document_select'
 			}),
+
 			enter: function(sm) {
 				Em.Logger.log('browsingSites');
 			    var view = this.get('view');
 			    if (view) {
-					view.set('content', this.getPath('parentState.siteList')),
+					view.set('content', App.presenterState.get('siteList'));
 			      	view.appendTo('#doc-share');
 			    }
 			}
@@ -60,7 +61,27 @@ App.presenterState = Em.State.create({
     	view: SC.View.extend({
     		templateName: 'copresent/~templates/presenter_login'
     	})
-    })
+    }),
+
+    siteSelected: function(sm, ctx) {
+        var siteList = this.get('siteList');
+
+        Em.Logger.log('siteSelected');
+        console.log(ctx);
+        this.set('siteName', ctx.node.shortName);
+        var folder = App.presenterState.get('siteList').getDocLib(ctx.node);
+        this.set('currentFolder', folder);
+        console.log(folder);
+    },
+
+    folderSelected: function(sm, ctx) {
+        Em.Logger.log('Folder Selected');
+
+    },
+
+    documentSelected: function(sm, ctx) {
+        Em.Logger.log('Document Selected');
+    }
 
 });
 
