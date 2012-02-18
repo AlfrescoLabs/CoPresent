@@ -9,11 +9,11 @@ App = Em.Application.create({
 
 App.CONFIG = {
     alfresco: {
-		hostname: 'x.local',
+		hostname: 'home.sala.us',
 		login: '',
 		password: '',
 		protocol: 'http',
-		port: 8080,
+		port: 80,
 		serviceBase: 'alfresco/service/',
         prefix: '/_proxy/'
 	}

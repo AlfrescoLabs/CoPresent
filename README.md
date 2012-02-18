@@ -1,7 +1,7 @@
-Ember Skeleton
+copresent
 ==============
 
-A skeleton application framework using Ember.js and Rake Pipeline.
+Share and present documents in real-time.
 
 Running
 -------
