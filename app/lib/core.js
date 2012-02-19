@@ -27,6 +27,19 @@ App.user = Em.Object.create({
 	isPresenter: false
 });
 
+App.Node = Em.Object.extend({
+    node:{},
+    title: function() {
+        return this.get('node').node.properties['cm:title'];
+    }.property().cacheable(),
+    name: function() {
+        return this.get('node').node.properties['cm:name'];
+    }.property().cacheable(),
+    isContainer: function() {
+        return this.get('node').node.isContainer;
+    }.property().cacheable()
+});
+
 App.Folder = Em.ArrayProxy.extend({
 	siteTitle: '',
 	siteId: '',
@@ -34,14 +47,16 @@ App.Folder = Em.ArrayProxy.extend({
 	metadata: undefined,
 	
 	content: [],
-	
-	folders: function(){
-		return this.filterProperty('node.isContainer', true);
-	}.property('children').cacheable(),
-	 
-	docs: function(){
-		return this.filterProperty('node.isContainer', true);
-	}.property('children').cacheable(),
+
+	folders: function() {
+        return this.filterProperty('isContainer', true);
+    }.property().cacheable(),
+
+    documents: function() {
+        return this.filterProperty('isContainer', false);
+    }.property().cacheable(),
+
+
 	
 	init: function() {
 		var data = null;
@@ -53,14 +68,16 @@ App.Folder = Em.ArrayProxy.extend({
 			folderPath: this.get('folderPath')
 		}, function(data){
 			_self.set('metadata', data.metadata);
-			
-			_self.set('content', data.items);
+            var items = data.items;
+            var len = data.totalRecords;
+            for (var i=0;i<len;i++) {
+                console.log(items[i]);
+			    _self.pushObject(App.Node.create({node:items[i]}));
+            }
 		});
 	}
 	
 });
-
-
 
 App.Sites = Em.ArrayProxy.extend({
 	content: [],
@@ -79,14 +96,5 @@ App.Sites = Em.ArrayProxy.extend({
                     siteTitle: node.title,
                     folderPath: '/'
                 });
-    },
-
-	getSiteDocLib: function(idx) {
-		var item = this.objectAt(idx);
-		return App.Folder.create({
-			siteId: item.shortName,
-			siteTitle: item.title,
-			folderPath: ''
-		});
-	}	
+    }
 });

@@ -6,7 +6,7 @@ App.presenterState = Em.State.create({
 	documentLoaded: false,
 
     start: Em.ViewState.create({
-		view: Em.View.extend({
+		view: Em.View.create({
 	        templateName: 'copresent/~templates/presenter_main'
 	    }),
 	
@@ -29,14 +29,16 @@ App.presenterState = Em.State.create({
 		//TODO load document after selection
 		enter: function(sm) {
 			Em.Logger.log('loadingDocument');
-			App.presenterState.set('siteList', App.Sites.create());
+			if (!App.presenterState.get('siteList')){
+                App.presenterState.set('siteList', App.Sites.create());
+            }
 		},
 		
 		initialSubstate: 'browsingSites',
 		
 		browsingSites: Em.ViewState.create({
 			view: Em.View.create({
-				templateName: 'copresent/~templates/presenter_document_select'
+				templateName: 'copresent/~templates/presenter_site_select'
 			}),
 
 			enter: function(sm) {
@@ -46,13 +48,29 @@ App.presenterState = Em.State.create({
 					view.set('content', App.presenterState.get('siteList'));
 			      	view.appendTo('#doc-share');
 			    }
-			}
+                console.log(sm.get('currentState'));
+			},
+
+            exit: function(sm) {
+                console.log('removing browsing sites');
+                this._super();
+            }
 		}),
 		
 		browsingFolders: Em.ViewState.create({
-			enter: function(stateManager) {
+            view: Em.View.create({
+            	templateName: 'copresent/~templates/presenter_document_select'
+            }),
+
+			enter: function(sm) {
 				Em.Logger.log('browsingFolders');
-			}			
+                var view = this.get('view');
+                if (view)
+                {   console.log(App.presenterState.get('currentFolder'));
+                    view.set('content', App.presenterState.get('currentFolder'));
+                    view.appendTo('#doc-share');
+                }
+			}
 		})
 		
 	}),
@@ -69,9 +87,10 @@ App.presenterState = Em.State.create({
         Em.Logger.log('siteSelected');
         console.log(ctx);
         this.set('siteName', ctx.node.shortName);
-        var folder = App.presenterState.get('siteList').getDocLib(ctx.node);
+        var folder = this.get('siteList').getDocLib(ctx.node);
         this.set('currentFolder', folder);
         console.log(folder);
+        App.stateManager.goToState('presenter.loadingDocument.browsingFolders');
     },
 
     folderSelected: function(sm, ctx) {
