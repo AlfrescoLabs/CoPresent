@@ -1,5 +1,4 @@
 require('sproutcore-routing');
-
 require('copresent/core');
 
 App.routes = {

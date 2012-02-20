@@ -4,15 +4,15 @@
 	Alfresco Credentials
 	
 	<p>
-		{{view Em.TextField class="input span4" placeholder="Login" valueBinding="App.user.alf_login"}}
+		{{view Em.TextField class="input full-width" placeholder="Login" valueBinding="App.stateManager.user.alf_login"}}
 	</p>
 	<p>
-		{{view Em.TextField class="input span4" placeholder="Password" type="password" valueBinding="App.user.alf_password"}}
+		{{view Em.TextField class="input full-width" placeholder="Password" type="password" valueBinding="App.stateManager.user.alf_password"}}
 	</p>
 	<div class="form-actions">
-		{{#view Em.Button action="login" target="App.stateManager" class="btn btn-large btn-primary"}}Login{{/view}}
+		{{#view Em.Button action="login" target="App.stateManager" class="btn btn-primary"}}Login{{/view}}
 
-		{{#view Em.Button class="btn btn-large"}}Cancel{{/view}}
+		{{#view Em.Button class="btn"}}Cancel{{/view}}
 	</div>
 </div>
 <div class="span4"/>&nbsp;</div>

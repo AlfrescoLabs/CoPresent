@@ -1,7 +1,9 @@
 require('jquery');
 require('ember');
 require('ember-data');
+require('ember-touch');
 require('alfresco');
+require('pdf');
 
 App = Em.Application.create({
     VERSION: '0.1'  
@@ -19,7 +21,7 @@ App.CONFIG = {
 	}
 };
 
-App.user = Em.Object.create({
+App.User = Em.Object.extend({
 	name: '',
 	alf_login: '',
 	alf_password: '',
@@ -41,7 +43,6 @@ App.Node = Em.Object.extend({
 });
 
 App.Folder = Em.ArrayProxy.extend({
-	siteTitle: '',
 	siteId: '',
 	folderPath: '/',
 	metadata: undefined,
@@ -79,7 +80,7 @@ App.Folder = Em.ArrayProxy.extend({
 	
 });
 
-App.Sites = Em.ArrayProxy.extend({
+App.SiteController = Em.ArrayProxy.extend({
 	content: [],
 	
 	init: function() {
@@ -90,11 +91,11 @@ App.Sites = Em.ArrayProxy.extend({
 		});
 	},
 
-    getDocLib: function(node) {
-        return App.Folder.create({
-                    siteId: node.shortName,
-                    siteTitle: node.title,
-                    folderPath: '/'
-                });
+    getFolder: function(ctx) {
+        return App.Folder.create(ctx);
     }
+});
+
+App.DocumentController = Em.Object.extend({
+    isDocumentLoaded: false
 });

@@ -25,9 +25,9 @@ App.startState = Em.State.create({
 		},
 		
 		loggingIn: Em.State.create({
-			enter: function() {
-				App.CONFIG.alfresco.login = App.user.get('alf_login');
-				App.CONFIG.alfresco.password = App.user.get('alf_password');
+			enter: function(sm) {
+				App.CONFIG.alfresco.login = sm.getPath('user.alf_login');
+				App.CONFIG.alfresco.password = sm.getPath('user.alf_password');
 				
 				var _self = this;
 				
@@ -36,7 +36,8 @@ App.startState = Em.State.create({
 					function() {
 						// Success
 						Em.Logger.log('Login Succeeded');
-						App.stateManager.goToState('presenter');
+                        sm.set('isLoggedIn', true);
+						sm.goToState('presenter');
 					},
 					function(error) {
 						// Error

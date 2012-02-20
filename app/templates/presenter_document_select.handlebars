@@ -1,13 +1,25 @@
-<h1>Select Document</h1>
-<h2>Total Items: {{content.length}}</h2>
+<table class="table table-striped">
+<thead><th>Select Document</th></thead>
+<tbody>
 {{#if content.length}}
-    <h2>Folders</h2>
-    {{#each content.folders}}
-        {{#view App.ContentSelectorView contentBinding="this"}}{{content.name}}{{/view}}
-    {{/each}}
-    <h2>Documents</h2>
-    {{#each content.documents}}
-        {{#view App.ContentSelectorView contentBinding="this"}}{{content.name}}{{/view}}
-    {{/each}}
-{{/if}}
 
+    {{#each content.folders}}
+    <tr><td>
+        {{#view App.FolderSelectorView contentBinding="this"}}
+        <i class="modern-icon">B</i>&nbsp;{{content.name}}<i class="modern-icon" style="float:right">&gt;</i>
+        {{/view}}
+    </td></tr>
+    {{/each}}
+
+
+    {{#each content.documents}}
+    <tr><td>
+        {{#view App.DocumentSelectorView contentBinding="this"}}
+        <i class="modern-icon">K</i>&nbsp;{{content.name}}
+        {{/view}}
+    </td></tr>
+    {{/each}}
+
+{{/if}}
+</tbody>
+</table>

@@ -1,4 +1,12 @@
-<h1>Select Site</h1>
+<table class="table table-striped">
+<thead><th>Select Site</th></thead>
+<tbody>
 {{#each content}}
-	{{#view App.ContentSelectorView contentBinding="this"}}{{content.title}}{{/view}}
+    <tr><td>
+	{{#view App.SiteSelectorView contentBinding="this"}}
+    <i class="modern-icon">w</i>&nbsp;{{content.title}}<i class="modern-icon" style="float:right">&gt;</i>
+    {{/view}}
+    </td></tr>
 {{/each}}
+</tbody>
+</table>

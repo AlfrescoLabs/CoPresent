@@ -67,7 +67,9 @@ match 'vendor/**/*.js' do
     vendor/alfresco.js
     vendor/jquery.js
     vendor/ember.js
+    vendor/ember-touch.js
     vendor/sproutcore-routing.js
+    vendor/pdf.js
   ], 'app.js'
 end
 
