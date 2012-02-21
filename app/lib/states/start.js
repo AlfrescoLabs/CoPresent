@@ -1,21 +1,21 @@
 require('copresent/core');
 require('alfresco');
 
-App.startState = Em.State.create({
+App.startState = Ember.State.create({
     initialSubstate: 'gettingUserRole',
 
-    gettingUserRole: Em.ViewState.create({
+    gettingUserRole: Ember.ViewState.create({
         view: SC.View.extend({
             templateName: 'copresent/~templates/main_page'
         }),
 
         showPresenterLogin: function() {
-        	Em.Logger.log('showPresenterLogin');
+        	Ember.Logger.log('showPresenterLogin');
         	App.stateManager.goToState('start.gettingPresenterCredentials');
         }
     }),
 
-    gettingPresenterCredentials: Em.ViewState.create({
+    gettingPresenterCredentials: Ember.ViewState.create({
     	view: SC.View.extend({
     		templateName: 'copresent/~templates/presenter_login'
     	}),
@@ -24,7 +24,7 @@ App.startState = Em.State.create({
 			App.stateManager.goToState('start.gettingPresenterCredentials.loggingIn');
 		},
 		
-		loggingIn: Em.State.create({
+		loggingIn: Ember.State.create({
 			enter: function(sm) {
 				App.CONFIG.alfresco.login = sm.getPath('user.alf_login');
 				App.CONFIG.alfresco.password = sm.getPath('user.alf_password');
@@ -35,13 +35,13 @@ App.startState = Em.State.create({
 				App.alf.login(
 					function() {
 						// Success
-						Em.Logger.log('Login Succeeded');
+						Ember.Logger.log('Login Succeeded');
                         sm.set('isLoggedIn', true);
-						sm.goToState('presenter');
+						sm.goToState('documentSelect');
 					},
 					function(error) {
 						// Error
-						Em.Logger.log('Login Failed');
+						Ember.Logger.log('Login Failed');
 						App.stateManager.goToState('start'); //TODO pop up an alert and retry
 					});
 			} // end enter()

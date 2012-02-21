@@ -5,7 +5,7 @@ require('ember-touch');
 require('alfresco');
 require('pdf');
 
-App = Em.Application.create({
+App = Ember.Application.create({
     VERSION: '0.1'  
 });
 
@@ -21,7 +21,7 @@ App.CONFIG = {
 	}
 };
 
-App.User = Em.Object.extend({
+App.User = Ember.Object.extend({
 	name: '',
 	alf_login: '',
 	alf_password: '',
@@ -29,7 +29,7 @@ App.User = Em.Object.extend({
 	isPresenter: false
 });
 
-App.Node = Em.Object.extend({
+App.Node = Ember.Object.extend({
     node:{},
     title: function() {
         return this.get('node').node.properties['cm:title'];
@@ -42,7 +42,7 @@ App.Node = Em.Object.extend({
     }.property().cacheable()
 });
 
-App.Folder = Em.ArrayProxy.extend({
+App.Folder = Ember.ArrayProxy.extend({
 	siteId: '',
 	folderPath: '/',
 	metadata: undefined,
@@ -62,6 +62,7 @@ App.Folder = Em.ArrayProxy.extend({
 	init: function() {
 		var data = null;
 		var _self = this;
+        this.set('content',[]);
 		App.alf.getDocList({
 			site: this.get('siteId'),
 			model: 'cm:content',
@@ -80,7 +81,7 @@ App.Folder = Em.ArrayProxy.extend({
 	
 });
 
-App.SiteController = Em.ArrayProxy.extend({
+App.SiteController = Ember.ArrayProxy.extend({
 	content: [],
 	
 	init: function() {
@@ -96,6 +97,6 @@ App.SiteController = Em.ArrayProxy.extend({
     }
 });
 
-App.DocumentController = Em.Object.extend({
+App.DocumentController = Ember.Object.extend({
     isDocumentLoaded: false
 });

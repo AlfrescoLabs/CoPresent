@@ -3,6 +3,12 @@
 <tbody>
 {{#if content.length}}
 
+    <tr><td>
+        {{#view Ember.Button tagName="div" target="App.stateManager" action="previousFolder"}}
+        <i class="modern-icon">&lt;</i>&nbsp;Back
+        {{/view}}
+    </td></tr>
+
     {{#each content.folders}}
     <tr><td>
         {{#view App.FolderSelectorView contentBinding="this"}}
@@ -10,7 +16,6 @@
         {{/view}}
     </td></tr>
     {{/each}}
-
 
     {{#each content.documents}}
     <tr><td>

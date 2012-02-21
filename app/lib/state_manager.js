@@ -6,7 +6,7 @@ require('copresent/states/doc_select');
 
 Ember.LOG_STATE_TRANSITIONS = true;
 
-App.set('stateManager', Em.StateManager.create({
+App.set('stateManager', Ember.StateManager.create({
 
 	rootElement: '#main',
     initialState: 'start',
@@ -17,7 +17,7 @@ App.set('stateManager', Em.StateManager.create({
     documentSelect: App.documentSelectionState,
 
     currentSiteName: null,
-    folderStack: Em.A([]),
+    folderStack: Ember.A([]),
     currentFolder: null,
     documentController: App.DocumentController.create(),
     isDocumentLoaded: false,
@@ -32,40 +32,45 @@ App.set('stateManager', Em.StateManager.create({
 
         this.set('isDocumentLoadedBinding', 'App.stateManager.documentController.isDocumentLoaded');
     },
-    
+
     siteSelected: function(sm, ctx) {
 
         this.set('siteName', ctx.node.shortName);
 
-        console.log('site has been selected '+ this.get('siteController'));
+        Ember.Logger.log('site has been selected '+ this.get('siteController'));
         var folder = this.siteController.getFolder({
             siteId: ctx.node.shortName,
             folderPath: '/'
         });
         this.set('currentFolder', folder);
-        this.get('folderStack').push(folder);
         this.goToState('documentSelect.browsingFolders');
     },
 
     folderSelected: function(sm, ctx) {
-        Em.Logger.log('Folder Selected '+ctx.get('name'));
-        console.log(ctx);
-        var newPath = this.getPath('currentFolder.folderPath')+'/'+ctx.get('name');
-        var folder = this.get('siteController').getFolder({
+        Ember.Logger.log('Folder Selected '+ctx.get('name'));
+        Ember.Logger.log(ctx);
+        var currentFolder = this.get('currentFolder');
+        this.folderStack.push(currentFolder);
+        var newPath = currentFolder.get('folderPath')+'/'+ctx.get('name');
+
+        var folder = this.siteController.getFolder({
             siteId: this.get('siteName'),
             folderPath: newPath
         });
 
-        console.log('folder has been selected '+ folder);
+        Ember.Logger.log('folder has been selected '+ folder);
         this.set('currentFolder', folder);
-        this.get('folderStack').push(folder);
     },
 
     previousFolder: function(sm, ctx) {
-        this.set('currentFolder', this.get('folderStack').pop());
+        if (this.folderStack.length > 0) {
+            this.set('currentFolder', this.folderStack.pop());
+        } else {
+            sm.goToState('documentSelect.browsingSites');
+        }
     },
 
     documentSelected: function(sm, ctx) {
-        Em.Logger.log('Document Selected');
+        Ember.Logger.log('Document Selected');
     }
 }));

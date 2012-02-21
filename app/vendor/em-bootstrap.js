@@ -1,7 +1,7 @@
 window.EmExt = {};
 
 // TODO Prevent swipe/scrolling of background list when modal is shown.
-EmExt.ModalView = Em.View.extend({
+EmExt.ModalView = Ember.View.extend({
     elementInserted: false,
 
     init: function(){
@@ -65,7 +65,7 @@ EmExt.ModalView = Em.View.extend({
             console.log(elementId);
             $(elementId).modal(cmd);
         } else {
-            Em.run.next(function(){
+            Ember.run.next(function(){
                 _self.modal(cmd);
             });
         }

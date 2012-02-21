@@ -1,68 +1,63 @@
 require('copresent/core');
 
-App.set('documentSelectionState', Em.State.create({
+App.set('documentSelectionState', Ember.State.create({
 
     initialSubstate: 'browsingSites',
 
-    browsingSites: Em.ViewState.create({
-        view: Em.View.create({
+    browsingSites: Ember.ViewState.create({
+        view: Ember.View.create({
             templateName: 'copresent/~templates/presenter_site_select'
         }),
 
         enter: function(sm) {
-            Em.Logger.log('browsingSites');
-
-            var siteController = sm.get('siteController');
-            if (!siteController) {
-                siteController = App.SiteController.create();
-                sm.set('siteController', siteController);
-            }
+            Ember.Logger.log('browsingSites');
 
             var view = this.get('view');
 
             if (view) {
-                view.set('content', siteController);
-                view.appendTo('#doc-share');
+                var siteController = sm.get('siteController');
+                if (!siteController) {
+                    siteController = App.SiteController.create();
+                    sm.set('siteController', siteController);
+                    view.set('content', siteController);
+                }
+                //view.appendTo('#doc-share');
+                if (view.get('state') == "inDOM") {
+                    view.show();
+                } else {
+                    view.appendTo(App.stateManager.get('rootElement'));
+                }
+
             }
         },
 
-        exit: function(sm) {
-            console.log('removing browsing sites');
+        exit: function() {
             this._super();
+            var view = this.get('view');
+            Ember.Logger.log("View State "+view.get('state'));
         }
     }), // end browsingSites
 
-    browsingFolders: Em.ViewState.create({
-        view: Em.View.create({
+    browsingFolders: Ember.ViewState.create({
+        view: Ember.View.create({
             contentBinding: 'App.stateManager.currentFolder',
             templateName: 'copresent/~templates/presenter_document_select'
         }),
 
         enter: function(sm) {
-            Em.Logger.log('browsingFolders');
+            Ember.Logger.log('browsingFolders');
 
             var view = this.get('view');
-            /*
-            // Defer creation of the view.
-            if (!view) {
-                view = this.BrowseView.create();
-                this.set('view', view);
-            } */
-            view.appendTo('#doc-share');
-        }/*,
+
+            if (view) {
+                view.appendTo(App.stateManager.get('rootElement'));
+            }
+        },
 
         folderChanged: function() {
             var view = this.get('view');
-            console.log('Removing View');
-            if (view) {
-                console.log('Removing View');
-                view.remove();
-                view.destroy();
-                view = this.BrowseView.create();
-                this.set('view', view);
-                view.appendTo('#doc-share');
-            }
-        }.observes('App.stateManager.currentFolder')   */
+            view.rerender(); // This is enough to get the view to update itself.
+        }.observes('App.stateManager.currentFolder')
     })  // end browsingFolders
 
 })); // end documentSelectionState

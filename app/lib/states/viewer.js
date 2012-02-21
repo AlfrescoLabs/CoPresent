@@ -1,9 +1,9 @@
 require('copresent/core');
 
-App.viewerState = Em.State.create({
+App.viewerState = Ember.State.create({
     initialSubstate: 'selectSession',
 
-    selectSession: Em.ViewState.create({
+    selectSession: Ember.ViewState.create({
         view: SC.View.extend({
             templateName: 'copresent/~templates/viewer_session_select'
         }),
@@ -13,13 +13,13 @@ App.viewerState = Em.State.create({
         }
     }),
 	
-	loadDocument: Em.State.create({
+	loadDocument: Ember.State.create({
 		//TODO Load document
 		// success -> goto viewingDocument
 		// fail -> goto selectSession & pass error msg.
 	}),
 
-    viewingDocument: Em.ViewState.create({
+    viewingDocument: Ember.ViewState.create({
     	view: SC.View.extend({
     		templateName: 'copresent/~templates/presenter_login'
     	})

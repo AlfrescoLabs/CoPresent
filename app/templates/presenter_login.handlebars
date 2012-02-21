@@ -4,15 +4,15 @@
 	Alfresco Credentials
 	
 	<p>
-		{{view Em.TextField class="input full-width" placeholder="Login" valueBinding="App.stateManager.user.alf_login"}}
+		{{view Ember.TextField class="input full-width" placeholder="Login" valueBinding="App.stateManager.user.alf_login"}}
 	</p>
 	<p>
-		{{view Em.TextField class="input full-width" placeholder="Password" type="password" valueBinding="App.stateManager.user.alf_password"}}
+		{{view Ember.TextField class="input full-width" placeholder="Password" type="password" valueBinding="App.stateManager.user.alf_password"}}
 	</p>
 	<div class="form-actions">
-		{{#view Em.Button action="login" target="App.stateManager" class="btn btn-primary"}}Login{{/view}}
+		{{#view Ember.Button action="login" target="App.stateManager" class="btn btn-primary"}}Login{{/view}}
 
-		{{#view Em.Button class="btn"}}Cancel{{/view}}
+		{{#view Ember.Button class="btn"}}Cancel{{/view}}
 	</div>
 </div>
 <div class="span4"/>&nbsp;</div>
