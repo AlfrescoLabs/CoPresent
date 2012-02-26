@@ -29,13 +29,13 @@ App.set('documentSelectionState', Ember.State.create({
                 }
 
             }
-        },
+        }/*,
 
         exit: function() {
             this._super();
             var view = this.get('view');
             Ember.Logger.log("View State "+view.get('state'));
-        }
+        }*/
     }), // end browsingSites
 
     browsingFolders: Ember.ViewState.create({

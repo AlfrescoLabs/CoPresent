@@ -16,10 +16,13 @@ App.set('stateManager', Ember.StateManager.create({
 	viewer: App.viewerState,
     documentSelect: App.documentSelectionState,
 
+    pdfManager: PDF.manager,
+
     currentSiteName: null,
     folderStack: Ember.A([]),
     currentFolder: null,
-    documentController: App.DocumentController.create(),
+    documentController: PDF.manager.controller,
+    currentDocument: null,
     isDocumentLoaded: false,
     currentPage: 0,
     siteController: null,
@@ -49,12 +52,12 @@ App.set('stateManager', Ember.StateManager.create({
     folderSelected: function(sm, ctx) {
         Ember.Logger.log('Folder Selected '+ctx.get('name'));
         Ember.Logger.log(ctx);
-        var currentFolder = this.get('currentFolder');
-        this.folderStack.push(currentFolder);
+        var currentFolder = sm.get('currentFolder');
+        sm.folderStack.pushObject(currentFolder);
         var newPath = currentFolder.get('folderPath')+'/'+ctx.get('name');
 
-        var folder = this.siteController.getFolder({
-            siteId: this.get('siteName'),
+        var folder = sm.siteController.getFolder({
+            siteId: sm.get('siteName'),
             folderPath: newPath
         });
 
@@ -63,8 +66,8 @@ App.set('stateManager', Ember.StateManager.create({
     },
 
     previousFolder: function(sm, ctx) {
-        if (this.folderStack.length > 0) {
-            this.set('currentFolder', this.folderStack.pop());
+        if (sm.folderStack.length > 0) {
+            sm.set('currentFolder', this.folderStack.popObject());
         } else {
             sm.goToState('documentSelect.browsingSites');
         }
@@ -72,5 +75,41 @@ App.set('stateManager', Ember.StateManager.create({
 
     documentSelected: function(sm, ctx) {
         Ember.Logger.log('Document Selected');
+        Ember.Logger.log(ctx);
+
+        var node = ctx.node.get('node').node;
+        Ember.Logger.log(node);
+
+        var id = node.properties['sys:node-uuid'];
+        var store_protocol  = node.properties['sys:store-protocol'];
+        var store = node.properties['sys:store-identifier'];
+        var ticket = App.alf.getTicket();
+        var pdfServiceUrl = 'ext/node/' + store_protocol + '/' + store + '/' + id + '/pdf';
+
+        var protocol = App.CONFIG.alfresco.protocol;
+        var host = App.CONFIG.alfresco.hostname;
+
+        var loc = window.location;
+        var prefix = loc.protocol+'//'+ loc.host + App.CONFIG.alfresco.prefix;
+
+        var serviceBase = App.CONFIG.alfresco.serviceBase;
+
+        var url = prefix + protocol + '://' + host + '/' + serviceBase + pdfServiceUrl + '?alf_ticket=' + ticket;
+
+        Ember.Logger.log('URL: ' + url);
+
+        this.set('currentDocument', ctx.node);
+        var _self = this;
+        var cfg = {
+            url: url,
+            success: function() {
+                Ember.Logger.log('Document has been loaded.');
+                _self.set('isDocumentLoaded', true);
+                _self.goToState('presenter');
+            }
+        };
+
+        sm.get('pdfManager').send('loadDocument', cfg);
+
     }
 }));

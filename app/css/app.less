@@ -2,7 +2,7 @@
 @import "responsive.less";
 //@import "uikit.less";
 
-@baseFontSize: 26px;
+@baseFontSize: 22px;
 @baseLineHeight: @baseFontSize+5;
 
 body {
@@ -41,8 +41,11 @@ a {
 .alf-nav-brand {
 	float: right;
 	background-image: url(/assets/img/alf-30px.png);
+    //background-size: 94%;
+    background-repeat: no-repeat;
 	width: 104px;
 	margin-top: 5px;
+    padding-bottom: 5px;
 }
 
 .full-width {
@@ -56,4 +59,9 @@ a {
     padding-left: 15%;
     padding-right: 15%;
     //padding-bottom: 200px;
+}
+
+.doc-select-header {
+    background-color: black !important;
+    color: white;
 }

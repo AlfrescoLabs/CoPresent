@@ -1,13 +1,14 @@
 <table class="table table-striped">
 <thead><th>Select Document</th></thead>
 <tbody>
-{{#if content.length}}
 
-    <tr><td>
-        {{#view Ember.Button tagName="div" target="App.stateManager" action="previousFolder"}}
-        <i class="modern-icon">&lt;</i>&nbsp;Back
-        {{/view}}
-    </td></tr>
+<tr><td class="doc-select-header">
+    {{#view Ember.Button tagName="div" target="App.stateManager" action="previousFolder"}}
+    <i class="modern-icon">&lt;</i>&nbsp;Back
+    {{/view}}
+</td></tr>
+
+{{#if content.length}}
 
     {{#each content.folders}}
     <tr><td>

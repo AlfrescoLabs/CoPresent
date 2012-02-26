@@ -1,10 +1,3 @@
-require('jquery');
-require('ember');
-require('ember-data');
-require('ember-touch');
-require('alfresco');
-require('pdf');
-
 App = Ember.Application.create({
     VERSION: '0.1'  
 });

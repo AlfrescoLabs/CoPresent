@@ -1,6 +1,11 @@
 <table class="table table-striped">
 <thead><th>Select Site</th></thead>
 <tbody>
+<tr><td class="doc-select-header">
+    {{#view Ember.Button tagName="div" target="App.stateManager" action="closeDocumentSelect"}}
+    Close
+    {{/view}}
+</td></tr>
 {{#each content}}
     <tr><td>
 	{{#view App.SiteSelectorView contentBinding="this"}}

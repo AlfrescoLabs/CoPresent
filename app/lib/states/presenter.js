@@ -1,7 +1,7 @@
 require('copresent/core');
 require('alfresco');
 
-App.presenterState = Ember.State.create({
+App.set('presenterState', Ember.State.create({
     initialSubstate: 'start',
 	documentLoaded: false,
 
@@ -14,27 +14,34 @@ App.presenterState = Ember.State.create({
 
 		enter: function(sm) {
 			this._super(sm);
-			var documentLoaded = sm.get('documentLoaded');
+			var documentLoaded = sm.get('isDocumentLoaded');
 			if (documentLoaded) {
-				//TODO show the doc
+				sm.goToState('presenter.presentingDocument');
 			} else {
-				//sm.goToState('documentSelect');
+				sm.goToState('documentSelect');
 			}
-		},
-
-		exit: function(sm) {
-            this._super(sm);
-			//TODO remove this view ONLY when going back to start state.
 		}
     }),
 
     presentingDocument: Ember.ViewState.create({
-    	view: SC.View.extend({
-    		templateName: 'copresent/~templates/presenter_login'
-    	})
+    	DocumentContainerView: Ember.View.extend({
+    		templateName: 'copresent/~templates/document_viewer'
+    	}),
+
+        enter: function(sm) {
+            var view = this.get('view');
+
+            if (!view) {
+                view = this.DocumentContainerView.create({
+                    content: sm.get('documentController')
+                });
+            }
+
+            view.appendTo(sm.rootElement);
+        }
     })
 
-});
+}));
 
 
 
