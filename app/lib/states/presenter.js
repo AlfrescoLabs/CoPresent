@@ -24,15 +24,12 @@ App.set('presenterState', Ember.State.create({
     }),
 
     presentingDocument: Ember.ViewState.create({
-    	DocumentContainerView: Ember.View.extend({
-    		templateName: 'copresent/~templates/document_viewer'
-    	}),
 
         enter: function(sm) {
             var view = this.get('view');
 
             if (!view) {
-                view = this.DocumentContainerView.create({
+                view = App.SwipeView.create({
                     content: sm.get('documentController')
                 });
             }

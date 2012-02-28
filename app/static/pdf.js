@@ -7,7 +7,7 @@ var PDFJS = {};
   // Use strict in our context only - users might not want it
   'use strict';
 
-  PDFJS.build = 'f4aff1d';
+  PDFJS.build = '42a428a';
 
   // Files are inserted below - see Makefile
   /* PDFJSSCRIPT_INCLUDE_ALL */
@@ -1046,6 +1046,57 @@ var Util = (function UtilClosure() {
   return Util;
 })();
 
+// optimised CSS custom property getter/setter
+var CustomStyle = (function CustomStyleClosure() {
+
+  // As noted on: http://www.zachstronaut.com/posts/2009/02/17/
+  //              animate-css-transforms-firefox-webkit.html
+  // in some versions of IE9 it is critical that ms appear in this list
+  // before Moz
+  var prefixes = ['ms', 'Moz', 'Webkit', 'O'];
+  var _cache = { };
+
+  function CustomStyle() {
+  }
+
+  CustomStyle.getProp = function get(propName, element) {
+    // check cache only when no element is given
+    if (arguments.length == 1 && typeof _cache[propName] == 'string') {
+      return _cache[propName];
+    }
+
+    element = element || document.documentElement;
+    var style = element.style, prefixed, uPropName;
+
+    // test standard property first
+    if (typeof style[propName] == 'string') {
+      return (_cache[propName] = propName);
+    }
+
+    // capitalize
+    uPropName = propName.charAt(0).toUpperCase() + propName.slice(1);
+
+    // test vendor specific properties
+    for (var i = 0, l = prefixes.length; i < l; i++) {
+      prefixed = prefixes[i] + uPropName;
+      if (typeof style[prefixed] == 'string') {
+        return (_cache[propName] = prefixed);
+      }
+    }
+
+    //if all fails then set to undefined
+    return (_cache[propName] = 'undefined');
+  }
+
+  CustomStyle.setProp = function set(propName, element, str) {
+    var prop = this.getProp(propName);
+    if (prop != 'undefined')
+      element.style[prop] = str;
+  }
+
+  return CustomStyle;
+})();
+
 var PDFStringTranslateTable = [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0x2D8, 0x2C7, 0x2C6, 0x2D9, 0x2DD, 0x2DB, 0x2DA, 0x2DC, 0, 0, 0, 0, 0, 0, 0,
@@ -2068,8 +2119,16 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 
           x += charWidth;
 
-          text.str += glyph.unicode === ' ' ? '\u00A0' : glyph.unicode;
-          text.length++;
+          var glyphUnicode = glyph.unicode === ' ' ? '\u00A0' : glyph.unicode;
+          var glyphUnicodeLength = glyphUnicode.length;
+          //reverse an arabic ligature
+          if (glyphUnicodeLength > 1 &&
+              isRTLRangeFor(glyphUnicode.charCodeAt(0))) {
+            for (var ii = glyphUnicodeLength - 1; ii >= 0; ii--)
+              text.str += glyphUnicode[ii];
+          } else
+            text.str += glyphUnicode;
+          text.length += glyphUnicodeLength;
           text.canvasWidth += charWidth;
         }
         current.x += x * textHScale2;
@@ -2135,7 +2194,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
               text.str += shownText.str;
             }
             text.canvasWidth += shownText.canvasWidth;
-            text.length += e.length;
+            text.length += shownText.length;
           }
         } else {
           malformed('TJ array element ' + e + ' is not string or num');
@@ -12979,8 +13038,18 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
               } else {
                 // parsing hex UTF-16BE numbers
                 var str = [];
-                for (var i = 0, ii = token.length; i < ii; i += 4)
-                  str.push(parseInt(token.substr(i, 4), 16));
+                for (var k = 0, kk = token.length; k < kk; k += 4) {
+                  var b = parseInt(token.substr(k, 4), 16);
+                  if (b <= 0x10) {
+                    k += 4;
+                    b = (b << 16) | parseInt(token.substr(k, 4), 16);
+                    b -= 0x10000;
+                    str.push(0xD800 | (b >> 10));
+                    str.push(0xDC00 | (b & 0x3FF));
+                    break;
+                  }
+                  str.push(b);
+                }
                 tokens.push(String.fromCharCode.apply(String, str));
                 token = '';
               }
@@ -13261,6 +13330,7 @@ var kMaxWaitForFontFace = 1000;
 // Unicode Private Use Area
 var kCmapGlyphOffset = 0xE000;
 var kSizeOfGlyphArea = 0x1900;
+var kSymbolicFontGlyphOffset = 0xF000;
 
 // PDF Glyph Space Units are one Thousandth of a TextSpace Unit
 // except for Type 3 fonts
@@ -13282,269 +13352,241 @@ var FontFlags = {
 };
 
 var Encodings = {
-  get ExpertEncoding() {
-    return shadow(this, 'ExpertEncoding', ['', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', 'space', 'exclamsmall', 'Hungarumlautsmall', '',
-      'dollaroldstyle', 'dollarsuperior', 'ampersandsmall', 'Acutesmall',
-      'parenleftsuperior', 'parenrightsuperior', 'twodotenleader',
-      'onedotenleader', 'comma', 'hyphen', 'period', 'fraction',
-      'zerooldstyle', 'oneoldstyle', 'twooldstyle', 'threeoldstyle',
-      'fouroldstyle', 'fiveoldstyle', 'sixoldstyle', 'sevenoldstyle',
-      'eightoldstyle', 'nineoldstyle', 'colon', 'semicolon', 'commasuperior',
-      'threequartersemdash', 'periodsuperior', 'questionsmall', '',
-      'asuperior', 'bsuperior', 'centsuperior', 'dsuperior', 'esuperior', '',
-      '', 'isuperior', '', '', 'lsuperior', 'msuperior', 'nsuperior',
-      'osuperior', '', '', 'rsuperior', 'ssuperior', 'tsuperior', '', 'ff',
-      'fi', 'fl', 'ffi', 'ffl', 'parenleftinferior', '', 'parenrightinferior',
-      'Circumflexsmall', 'hyphensuperior', 'Gravesmall', 'Asmall', 'Bsmall',
-      'Csmall', 'Dsmall', 'Esmall', 'Fsmall', 'Gsmall', 'Hsmall', 'Ismall',
-      'Jsmall', 'Ksmall', 'Lsmall', 'Msmall', 'Nsmall', 'Osmall', 'Psmall',
-      'Qsmall', 'Rsmall', 'Ssmall', 'Tsmall', 'Usmall', 'Vsmall', 'Wsmall',
-      'Xsmall', 'Ysmall', 'Zsmall', 'colonmonetary', 'onefitted', 'rupiah',
-      'Tildesmall', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', 'exclamdownsmall', 'centoldstyle', 'Lslashsmall', '', '',
-      'Scaronsmall', 'Zcaronsmall', 'Dieresissmall', 'Brevesmall',
-      'Caronsmall', '', 'Dotaccentsmall', '', '', 'Macronsmall', '', '',
-      'figuredash', 'hypheninferior', '', '', 'Ogoneksmall', 'Ringsmall',
-      'Cedillasmall', '', '', '', 'onequarter', 'onehalf', 'threequarters',
-      'questiondownsmall', 'oneeighth', 'threeeighths', 'fiveeighths',
-      'seveneighths', 'onethird', 'twothirds', '', '', 'zerosuperior',
-      'onesuperior', 'twosuperior', 'threesuperior', 'foursuperior',
-      'fivesuperior', 'sixsuperior', 'sevensuperior', 'eightsuperior',
-      'ninesuperior', 'zeroinferior', 'oneinferior', 'twoinferior',
-      'threeinferior', 'fourinferior', 'fiveinferior', 'sixinferior',
-      'seveninferior', 'eightinferior', 'nineinferior', 'centinferior',
-      'dollarinferior', 'periodinferior', 'commainferior', 'Agravesmall',
-      'Aacutesmall', 'Acircumflexsmall', 'Atildesmall', 'Adieresissmall',
-      'Aringsmall', 'AEsmall', 'Ccedillasmall', 'Egravesmall', 'Eacutesmall',
-      'Ecircumflexsmall', 'Edieresissmall', 'Igravesmall', 'Iacutesmall',
-      'Icircumflexsmall', 'Idieresissmall', 'Ethsmall', 'Ntildesmall',
-      'Ogravesmall', 'Oacutesmall', 'Ocircumflexsmall', 'Otildesmall',
-      'Odieresissmall', 'OEsmall', 'Oslashsmall', 'Ugravesmall', 'Uacutesmall',
-      'Ucircumflexsmall', 'Udieresissmall', 'Yacutesmall', 'Thornsmall',
-      'Ydieresissmall'
-    ]);
-  },
-  get MacExpertEncoding() {
-    return shadow(this, 'MacExpertEncoding', ['', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', 'space', 'exclamsmall', 'Hungarumlautsmall',
-      'centoldstyle', 'dollaroldstyle', 'dollarsuperior', 'ampersandsmall',
-      'Acutesmall', 'parenleftsuperior', 'parenrightsuperior',
-      'twodotenleader', 'onedotenleader', 'comma', 'hyphen', 'period',
-      'fraction', 'zerooldstyle', 'oneoldstyle', 'twooldstyle',
-      'threeoldstyle', 'fouroldstyle', 'fiveoldstyle', 'sixoldstyle',
-      'sevenoldstyle', 'eightoldstyle', 'nineoldstyle', 'colon', 'semicolon',
-      '', 'threequartersemdash', '', 'questionsmall', '', '', '', '',
-      'Ethsmall', '', '', 'onequarter', 'onehalf', 'threequarters',
-      'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'onethird',
-      'twothirds', '', '', '', '', '', '', 'ff', 'fi', 'fl', 'ffi', 'ffl',
-      'parenleftinferior', '', 'parenrightinferior', 'Circumflexsmall',
-      'hypheninferior', 'Gravesmall', 'Asmall', 'Bsmall', 'Csmall', 'Dsmall',
-      'Esmall', 'Fsmall', 'Gsmall', 'Hsmall', 'Ismall', 'Jsmall', 'Ksmall',
-      'Lsmall', 'Msmall', 'Nsmall', 'Osmall', 'Psmall', 'Qsmall', 'Rsmall',
-      'Ssmall', 'Tsmall', 'Usmall', 'Vsmall', 'Wsmall', 'Xsmall', 'Ysmall',
-      'Zsmall', 'colonmonetary', 'onefitted', 'rupiah', 'Tildesmall', '', '',
-      'asuperior', 'centsuperior', '', '', '', '', 'Aacutesmall',
-      'Agravesmall', 'Acircumflexsmall', 'Adieresissmall', 'Atildesmall',
-      'Aringsmall', 'Ccedillasmall', 'Eacutesmall', 'Egravesmall',
-      'Ecircumflexsmall', 'Edieresissmall', 'Iacutesmall', 'Igravesmall',
-      'Icircumflexsmall', 'Idieresissmall', 'Ntildesmall', 'Oacutesmall',
-      'Ogravesmall', 'Ocircumflexsmall', 'Odieresissmall', 'Otildesmall',
-      'Uacutesmall', 'Ugravesmall', 'Ucircumflexsmall', 'Udieresissmall', '',
-      'eightsuperior', 'fourinferior', 'threeinferior', 'sixinferior',
-      'eightinferior', 'seveninferior', 'Scaronsmall', '', 'centinferior',
-      'twoinferior', '', 'Dieresissmall', '', 'Caronsmall', 'osuperior',
-      'fiveinferior', '', 'commainferior', 'periodinferior', 'Yacutesmall', '',
-      'dollarinferior', '', 'Thornsmall', '', 'nineinferior', 'zeroinferior',
-      'Zcaronsmall', 'AEsmall', 'Oslashsmall', 'questiondownsmall',
-      'oneinferior', 'Lslashsmall', '', '', '', '', '', '', 'Cedillasmall', '',
-      '', '', '', '', 'OEsmall', 'figuredash', 'hyphensuperior', '', '', '',
-      '', 'exclamdownsmall', '', 'Ydieresissmall', '', 'onesuperior',
-      'twosuperior', 'threesuperior', 'foursuperior', 'fivesuperior',
-      'sixsuperior', 'sevensuperior', 'ninesuperior', 'zerosuperior', '',
-      'esuperior', 'rsuperior', 'tsuperior', '', '', 'isuperior', 'ssuperior',
-      'dsuperior', '', '', '', '', '', 'lsuperior', 'Ogoneksmall',
-      'Brevesmall', 'Macronsmall', 'bsuperior', 'nsuperior', 'msuperior',
-      'commasuperior', 'periodsuperior', 'Dotaccentsmall', 'Ringsmall'
-    ]);
-  },
-  get MacRomanEncoding() {
-    return shadow(this, 'MacRomanEncoding', ['', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', 'space', 'exclam', 'quotedbl', 'numbersign',
-      'dollar', 'percent', 'ampersand', 'quotesingle', 'parenleft',
-      'parenright', 'asterisk', 'plus', 'comma', 'hyphen', 'period', 'slash',
-      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-      'nine', 'colon', 'semicolon', 'less', 'equal', 'greater', 'question',
-      'at', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-      'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-      'bracketleft', 'backslash', 'bracketright', 'asciicircum', 'underscore',
-      'grave', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-      'braceleft', 'bar', 'braceright', 'asciitilde', '', 'Adieresis', 'Aring',
-      'Ccedilla', 'Eacute', 'Ntilde', 'Odieresis', 'Udieresis', 'aacute',
-      'agrave', 'acircumflex', 'adieresis', 'atilde', 'aring', 'ccedilla',
-      'eacute', 'egrave', 'ecircumflex', 'edieresis', 'iacute', 'igrave',
-      'icircumflex', 'idieresis', 'ntilde', 'oacute', 'ograve', 'ocircumflex',
-      'odieresis', 'otilde', 'uacute', 'ugrave', 'ucircumflex', 'udieresis',
-      'dagger', 'degree', 'cent', 'sterling', 'section', 'bullet', 'paragraph',
-      'germandbls', 'registered', 'copyright', 'trademark', 'acute',
-      'dieresis', 'notequal', 'AE', 'Oslash', 'infinity', 'plusminus',
-      'lessequal', 'greaterequal', 'yen', 'mu', 'partialdiff', 'summation',
-      'product', 'pi', 'integral', 'ordfeminine', 'ordmasculine', 'Omega',
-      'ae', 'oslash', 'questiondown', 'exclamdown', 'logicalnot', 'radical',
-      'florin', 'approxequal', 'Delta', 'guillemotleft', 'guillemotright',
-      'ellipsis', 'space', 'Agrave', 'Atilde', 'Otilde', 'OE', 'oe', 'endash',
-      'emdash', 'quotedblleft', 'quotedblright', 'quoteleft', 'quoteright',
-      'divide', 'lozenge', 'ydieresis', 'Ydieresis', 'fraction', 'currency',
-      'guilsinglleft', 'guilsinglright', 'fi', 'fl', 'daggerdbl',
-      'periodcentered', 'quotesinglbase', 'quotedblbase', 'perthousand',
-      'Acircumflex', 'Ecircumflex', 'Aacute', 'Edieresis', 'Egrave', 'Iacute',
-      'Icircumflex', 'Idieresis', 'Igrave', 'Oacute', 'Ocircumflex', 'apple',
-      'Ograve', 'Uacute', 'Ucircumflex', 'Ugrave', 'dotlessi', 'circumflex',
-      'tilde', 'macron', 'breve', 'dotaccent', 'ring', 'cedilla',
-      'hungarumlaut', 'ogonek', 'caron'
-    ]);
-  },
-  get StandardEncoding() {
-    return shadow(this, 'StandardEncoding', ['', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', 'space', 'exclam', 'quotedbl', 'numbersign',
-      'dollar', 'percent', 'ampersand', 'quoteright', 'parenleft',
-      'parenright', 'asterisk', 'plus', 'comma', 'hyphen', 'period', 'slash',
-      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-      'nine', 'colon', 'semicolon', 'less', 'equal', 'greater', 'question',
-      'at', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-      'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-      'bracketleft', 'backslash', 'bracketright', 'asciicircum', 'underscore',
-      'quoteleft', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
-      'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-      'braceleft', 'bar', 'braceright', 'asciitilde', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', 'exclamdown', 'cent', 'sterling',
-      'fraction', 'yen', 'florin', 'section', 'currency', 'quotesingle',
-      'quotedblleft', 'guillemotleft', 'guilsinglleft', 'guilsinglright', 'fi',
-      'fl', '', 'endash', 'dagger', 'daggerdbl', 'periodcentered', '',
-      'paragraph', 'bullet', 'quotesinglbase', 'quotedblbase', 'quotedblright',
-      'guillemotright', 'ellipsis', 'perthousand', '', 'questiondown', '',
-      'grave', 'acute', 'circumflex', 'tilde', 'macron', 'breve', 'dotaccent',
-      'dieresis', '', 'ring', 'cedilla', '', 'hungarumlaut', 'ogonek', 'caron',
-      'emdash', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      'AE', '', 'ordfeminine', '', '', '', '', 'Lslash', 'Oslash', 'OE',
-      'ordmasculine', '', '', '', '', '', 'ae', '', '', '', 'dotlessi', '', '',
-      'lslash', 'oslash', 'oe', 'germandbls'
-    ]);
-  },
-  get WinAnsiEncoding() {
-    return shadow(this, 'WinAnsiEncoding', ['', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', 'space', 'exclam', 'quotedbl', 'numbersign',
-      'dollar', 'percent', 'ampersand', 'quotesingle', 'parenleft',
-      'parenright', 'asterisk', 'plus', 'comma', 'hyphen', 'period', 'slash',
-      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-      'nine', 'colon', 'semicolon', 'less', 'equal', 'greater', 'question',
-      'at', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-      'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-      'bracketleft', 'backslash', 'bracketright', 'asciicircum', 'underscore',
-      'grave', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-      'braceleft', 'bar', 'braceright', 'asciitilde', 'bullet', 'Euro',
-      'bullet', 'quotesinglbase', 'florin', 'quotedblbase', 'ellipsis',
-      'dagger', 'daggerdbl', 'circumflex', 'perthousand', 'Scaron',
-      'guilsinglleft', 'OE', 'bullet', 'Zcaron', 'bullet', 'bullet',
-      'quoteleft', 'quoteright', 'quotedblleft', 'quotedblright', 'bullet',
-      'endash', 'emdash', 'tilde', 'trademark', 'scaron', 'guilsinglright',
-      'oe', 'bullet', 'zcaron', 'Ydieresis', 'space', 'exclamdown', 'cent',
-      'sterling', 'currency', 'yen', 'brokenbar', 'section', 'dieresis',
-      'copyright', 'ordfeminine', 'guillemotleft', 'logicalnot', 'hyphen',
-      'registered', 'macron', 'degree', 'plusminus', 'twosuperior',
-      'threesuperior', 'acute', 'mu', 'paragraph', 'periodcentered',
-      'cedilla', 'onesuperior', 'ordmasculine', 'guillemotright', 'onequarter',
-      'onehalf', 'threequarters', 'questiondown', 'Agrave', 'Aacute',
-      'Acircumflex', 'Atilde', 'Adieresis', 'Aring', 'AE', 'Ccedilla',
-      'Egrave', 'Eacute', 'Ecircumflex', 'Edieresis', 'Igrave', 'Iacute',
-      'Icircumflex', 'Idieresis', 'Eth', 'Ntilde', 'Ograve', 'Oacute',
-      'Ocircumflex', 'Otilde', 'Odieresis', 'multiply', 'Oslash', 'Ugrave',
-      'Uacute', 'Ucircumflex', 'Udieresis', 'Yacute', 'Thorn', 'germandbls',
-      'agrave', 'aacute', 'acircumflex', 'atilde', 'adieresis', 'aring', 'ae',
-      'ccedilla', 'egrave', 'eacute', 'ecircumflex', 'edieresis', 'igrave',
-      'iacute', 'icircumflex', 'idieresis', 'eth', 'ntilde', 'ograve',
-      'oacute', 'ocircumflex', 'otilde', 'odieresis', 'divide', 'oslash',
-      'ugrave', 'uacute', 'ucircumflex', 'udieresis', 'yacute', 'thorn',
-      'ydieresis'
-    ]);
-  },
-  get symbolsEncoding() {
-    return shadow(this, 'symbolsEncoding', ['', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', 'space', 'exclam', 'universal', 'numbersign',
-      'existential', 'percent', 'ampersand', 'suchthat', 'parenleft',
-      'parenright', 'asteriskmath', 'plus', 'comma', 'minus', 'period',
-      'slash', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-      'eight', 'nine', 'colon', 'semicolon', 'less', 'equal', 'greater',
-      'question', 'congruent', 'Alpha', 'Beta', 'Chi', 'Delta', 'Epsilon',
-      'Phi', 'Gamma', 'Eta', 'Iota', 'theta1', 'Kappa', 'Lambda', 'Mu', 'Nu',
-      'Omicron', 'Pi', 'Theta', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'sigma1',
-      'Omega', 'Xi', 'Psi', 'Zeta', 'bracketleft', 'therefore', 'bracketright',
-      'perpendicular', 'underscore', 'radicalex', 'alpha', 'beta', 'chi',
-      'delta', 'epsilon', 'phi', 'gamma', 'eta', 'iota', 'phi1', 'kappa',
-      'lambda', 'mu', 'nu', 'omicron', 'pi', 'theta', 'rho', 'sigma', 'tau',
-      'upsilon', 'omega1', 'omega', 'xi', 'psi', 'zeta', 'braceleft', 'bar',
-      'braceright', 'similar', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', 'Euro', 'Upsilon1', 'minute', 'lessequal', 'fraction',
-      'infinity', 'florin', 'club', 'diamond', 'heart', 'spade', 'arrowboth',
-      'arrowleft', 'arrowup', 'arrowright', 'arrowdown', 'degree', 'plusminus',
-      'second', 'greaterequal', 'multiply', 'proportional', 'partialdiff',
-      'bullet', 'divide', 'notequal', 'equivalence', 'approxequal', 'ellipsis',
-      'arrowvertex', 'arrowhorizex', 'carriagereturn', 'aleph', 'Ifraktur',
-      'Rfraktur', 'weierstrass', 'circlemultiply', 'circleplus', 'emptyset',
-      'intersection', 'union', 'propersuperset', 'reflexsuperset', 'notsubset',
-      'propersubset', 'reflexsubset', 'element', 'notelement', 'angle',
-      'gradient', 'registerserif', 'copyrightserif', 'trademarkserif',
-      'product', 'radical', 'dotmath', 'logicalnot', 'logicaland', 'logicalor',
-      'arrowdblboth', 'arrowdblleft', 'arrowdblup', 'arrowdblright',
-      'arrowdbldown', 'lozenge', 'angleleft', 'registersans', 'copyrightsans',
-      'trademarksans', 'summation', 'parenlefttp', 'parenleftex',
-      'parenleftbt', 'bracketlefttp', 'bracketleftex', 'bracketleftbt',
-      'bracelefttp', 'braceleftmid', 'braceleftbt', 'braceex', '',
-      'angleright', 'integral', 'integraltp', 'integralex', 'integralbt',
-      'parenrighttp', 'parenrightex', 'parenrightbt', 'bracketrighttp',
-      'bracketrightex', 'bracketrightbt', 'bracerighttp', 'bracerightmid',
-      'bracerightbt'
-    ]);
-  },
-  get zapfDingbatsEncoding() {
-    return shadow(this, 'zapfDingbatsEncoding', ['', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', 'space', 'a1', 'a2', 'a202', 'a3', 'a4',
-      'a5', 'a119', 'a118', 'a117', 'a11', 'a12', 'a13', 'a14', 'a15', 'a16',
-      'a105', 'a17', 'a18', 'a19', 'a20', 'a21', 'a22', 'a23', 'a24', 'a25',
-      'a26', 'a27', 'a28', 'a6', 'a7', 'a8', 'a9', 'a10', 'a29', 'a30', 'a31',
-      'a32', 'a33', 'a34', 'a35', 'a36', 'a37', 'a38', 'a39', 'a40', 'a41',
-      'a42', 'a43', 'a44', 'a45', 'a46', 'a47', 'a48', 'a49', 'a50', 'a51',
-      'a52', 'a53', 'a54', 'a55', 'a56', 'a57', 'a58', 'a59', 'a60', 'a61',
-      'a62', 'a63', 'a64', 'a65', 'a66', 'a67', 'a68', 'a69', 'a70', 'a71',
-      'a72', 'a73', 'a74', 'a203', 'a75', 'a204', 'a76', 'a77', 'a78', 'a79',
-      'a81', 'a82', 'a83', 'a84', 'a97', 'a98', 'a99', 'a100', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-      '', '', '', '', '', '', '', '', '', '', '', '', 'a101', 'a102', 'a103',
-      'a104', 'a106', 'a107', 'a108', 'a112', 'a111', 'a110', 'a109', 'a120',
-      'a121', 'a122', 'a123', 'a124', 'a125', 'a126', 'a127', 'a128', 'a129',
-      'a130', 'a131', 'a132', 'a133', 'a134', 'a135', 'a136', 'a137', 'a138',
-      'a139', 'a140', 'a141', 'a142', 'a143', 'a144', 'a145', 'a146', 'a147',
-      'a148', 'a149', 'a150', 'a151', 'a152', 'a153', 'a154', 'a155', 'a156',
-      'a157', 'a158', 'a159', 'a160', 'a161', 'a163', 'a164', 'a196', 'a165',
-      'a192', 'a166', 'a167', 'a168', 'a169', 'a170', 'a171', 'a172', 'a173',
-      'a162', 'a174', 'a175', 'a176', 'a177', 'a178', 'a179', 'a193', 'a180',
-      'a199', 'a181', 'a200', 'a182', '', 'a201', 'a183', 'a184', 'a197',
-      'a185', 'a194', 'a198', 'a186', 'a195', 'a187', 'a188', 'a189', 'a190',
-      'a191'
-    ]);
-  }
+  ExpertEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'exclamsmall', 'Hungarumlautsmall', '', 'dollaroldstyle',
+    'dollarsuperior', 'ampersandsmall', 'Acutesmall', 'parenleftsuperior',
+    'parenrightsuperior', 'twodotenleader', 'onedotenleader', 'comma',
+    'hyphen', 'period', 'fraction', 'zerooldstyle', 'oneoldstyle',
+    'twooldstyle', 'threeoldstyle', 'fouroldstyle', 'fiveoldstyle',
+    'sixoldstyle', 'sevenoldstyle', 'eightoldstyle', 'nineoldstyle', 'colon',
+    'semicolon', 'commasuperior', 'threequartersemdash', 'periodsuperior',
+    'questionsmall', '', 'asuperior', 'bsuperior', 'centsuperior', 'dsuperior',
+    'esuperior', '', '', 'isuperior', '', '', 'lsuperior', 'msuperior',
+    'nsuperior', 'osuperior', '', '', 'rsuperior', 'ssuperior', 'tsuperior',
+    '', 'ff', 'fi', 'fl', 'ffi', 'ffl', 'parenleftinferior', '',
+    'parenrightinferior', 'Circumflexsmall', 'hyphensuperior', 'Gravesmall',
+    'Asmall', 'Bsmall', 'Csmall', 'Dsmall', 'Esmall', 'Fsmall', 'Gsmall',
+    'Hsmall', 'Ismall', 'Jsmall', 'Ksmall', 'Lsmall', 'Msmall', 'Nsmall',
+    'Osmall', 'Psmall', 'Qsmall', 'Rsmall', 'Ssmall', 'Tsmall', 'Usmall',
+    'Vsmall', 'Wsmall', 'Xsmall', 'Ysmall', 'Zsmall', 'colonmonetary',
+    'onefitted', 'rupiah', 'Tildesmall', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', 'exclamdownsmall', 'centoldstyle', 'Lslashsmall',
+    '', '', 'Scaronsmall', 'Zcaronsmall', 'Dieresissmall', 'Brevesmall',
+    'Caronsmall', '', 'Dotaccentsmall', '', '', 'Macronsmall', '', '',
+    'figuredash', 'hypheninferior', '', '', 'Ogoneksmall', 'Ringsmall',
+    'Cedillasmall', '', '', '', 'onequarter', 'onehalf', 'threequarters',
+    'questiondownsmall', 'oneeighth', 'threeeighths', 'fiveeighths',
+    'seveneighths', 'onethird', 'twothirds', '', '', 'zerosuperior',
+    'onesuperior', 'twosuperior', 'threesuperior', 'foursuperior',
+    'fivesuperior', 'sixsuperior', 'sevensuperior', 'eightsuperior',
+    'ninesuperior', 'zeroinferior', 'oneinferior', 'twoinferior',
+    'threeinferior', 'fourinferior', 'fiveinferior', 'sixinferior',
+    'seveninferior', 'eightinferior', 'nineinferior', 'centinferior',
+    'dollarinferior', 'periodinferior', 'commainferior', 'Agravesmall',
+    'Aacutesmall', 'Acircumflexsmall', 'Atildesmall', 'Adieresissmall',
+    'Aringsmall', 'AEsmall', 'Ccedillasmall', 'Egravesmall', 'Eacutesmall',
+    'Ecircumflexsmall', 'Edieresissmall', 'Igravesmall', 'Iacutesmall',
+    'Icircumflexsmall', 'Idieresissmall', 'Ethsmall', 'Ntildesmall',
+    'Ogravesmall', 'Oacutesmall', 'Ocircumflexsmall', 'Otildesmall',
+    'Odieresissmall', 'OEsmall', 'Oslashsmall', 'Ugravesmall', 'Uacutesmall',
+    'Ucircumflexsmall', 'Udieresissmall', 'Yacutesmall', 'Thornsmall',
+    'Ydieresissmall'],
+  MacExpertEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'exclamsmall', 'Hungarumlautsmall', 'centoldstyle',
+    'dollaroldstyle', 'dollarsuperior', 'ampersandsmall', 'Acutesmall',
+    'parenleftsuperior', 'parenrightsuperior', 'twodotenleader',
+    'onedotenleader', 'comma', 'hyphen', 'period', 'fraction', 'zerooldstyle',
+    'oneoldstyle', 'twooldstyle', 'threeoldstyle', 'fouroldstyle',
+    'fiveoldstyle', 'sixoldstyle', 'sevenoldstyle', 'eightoldstyle',
+    'nineoldstyle', 'colon', 'semicolon', '', 'threequartersemdash', '',
+    'questionsmall', '', '', '', '', 'Ethsmall', '', '', 'onequarter',
+    'onehalf', 'threequarters', 'oneeighth', 'threeeighths', 'fiveeighths',
+    'seveneighths', 'onethird', 'twothirds', '', '', '', '', '', '', 'ff',
+    'fi', 'fl', 'ffi', 'ffl', 'parenleftinferior', '', 'parenrightinferior',
+    'Circumflexsmall', 'hypheninferior', 'Gravesmall', 'Asmall', 'Bsmall',
+    'Csmall', 'Dsmall', 'Esmall', 'Fsmall', 'Gsmall', 'Hsmall', 'Ismall',
+    'Jsmall', 'Ksmall', 'Lsmall', 'Msmall', 'Nsmall', 'Osmall', 'Psmall',
+    'Qsmall', 'Rsmall', 'Ssmall', 'Tsmall', 'Usmall', 'Vsmall', 'Wsmall',
+    'Xsmall', 'Ysmall', 'Zsmall', 'colonmonetary', 'onefitted', 'rupiah',
+    'Tildesmall', '', '', 'asuperior', 'centsuperior', '', '', '', '',
+    'Aacutesmall', 'Agravesmall', 'Acircumflexsmall', 'Adieresissmall',
+    'Atildesmall', 'Aringsmall', 'Ccedillasmall', 'Eacutesmall', 'Egravesmall',
+    'Ecircumflexsmall', 'Edieresissmall', 'Iacutesmall', 'Igravesmall',
+    'Icircumflexsmall', 'Idieresissmall', 'Ntildesmall', 'Oacutesmall',
+    'Ogravesmall', 'Ocircumflexsmall', 'Odieresissmall', 'Otildesmall',
+    'Uacutesmall', 'Ugravesmall', 'Ucircumflexsmall', 'Udieresissmall', '',
+    'eightsuperior', 'fourinferior', 'threeinferior', 'sixinferior',
+    'eightinferior', 'seveninferior', 'Scaronsmall', '', 'centinferior',
+    'twoinferior', '', 'Dieresissmall', '', 'Caronsmall', 'osuperior',
+    'fiveinferior', '', 'commainferior', 'periodinferior', 'Yacutesmall', '',
+    'dollarinferior', '', 'Thornsmall', '', 'nineinferior', 'zeroinferior',
+    'Zcaronsmall', 'AEsmall', 'Oslashsmall', 'questiondownsmall',
+    'oneinferior', 'Lslashsmall', '', '', '', '', '', '', 'Cedillasmall', '',
+    '', '', '', '', 'OEsmall', 'figuredash', 'hyphensuperior', '', '', '', '',
+    'exclamdownsmall', '', 'Ydieresissmall', '', 'onesuperior', 'twosuperior',
+    'threesuperior', 'foursuperior', 'fivesuperior', 'sixsuperior',
+    'sevensuperior', 'ninesuperior', 'zerosuperior', '', 'esuperior',
+    'rsuperior', 'tsuperior', '', '', 'isuperior', 'ssuperior', 'dsuperior',
+    '', '', '', '', '', 'lsuperior', 'Ogoneksmall', 'Brevesmall',
+    'Macronsmall', 'bsuperior', 'nsuperior', 'msuperior', 'commasuperior',
+    'periodsuperior', 'Dotaccentsmall', 'Ringsmall'],
+  MacRomanEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'exclam', 'quotedbl', 'numbersign', 'dollar', 'percent',
+    'ampersand', 'quotesingle', 'parenleft', 'parenright', 'asterisk', 'plus',
+    'comma', 'hyphen', 'period', 'slash', 'zero', 'one', 'two', 'three',
+    'four', 'five', 'six', 'seven', 'eight', 'nine', 'colon', 'semicolon',
+    'less', 'equal', 'greater', 'question', 'at', 'A', 'B', 'C', 'D', 'E', 'F',
+    'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
+    'V', 'W', 'X', 'Y', 'Z', 'bracketleft', 'backslash', 'bracketright',
+    'asciicircum', 'underscore', 'grave', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+    'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+    'w', 'x', 'y', 'z', 'braceleft', 'bar', 'braceright', 'asciitilde', '',
+    'Adieresis', 'Aring', 'Ccedilla', 'Eacute', 'Ntilde', 'Odieresis',
+    'Udieresis', 'aacute', 'agrave', 'acircumflex', 'adieresis', 'atilde',
+    'aring', 'ccedilla', 'eacute', 'egrave', 'ecircumflex', 'edieresis',
+    'iacute', 'igrave', 'icircumflex', 'idieresis', 'ntilde', 'oacute',
+    'ograve', 'ocircumflex', 'odieresis', 'otilde', 'uacute', 'ugrave',
+    'ucircumflex', 'udieresis', 'dagger', 'degree', 'cent', 'sterling',
+    'section', 'bullet', 'paragraph', 'germandbls', 'registered', 'copyright',
+    'trademark', 'acute', 'dieresis', 'notequal', 'AE', 'Oslash', 'infinity',
+    'plusminus', 'lessequal', 'greaterequal', 'yen', 'mu', 'partialdiff',
+    'summation', 'product', 'pi', 'integral', 'ordfeminine', 'ordmasculine',
+    'Omega', 'ae', 'oslash', 'questiondown', 'exclamdown', 'logicalnot',
+    'radical', 'florin', 'approxequal', 'Delta', 'guillemotleft',
+    'guillemotright', 'ellipsis', 'space', 'Agrave', 'Atilde', 'Otilde', 'OE',
+    'oe', 'endash', 'emdash', 'quotedblleft', 'quotedblright', 'quoteleft',
+    'quoteright', 'divide', 'lozenge', 'ydieresis', 'Ydieresis', 'fraction',
+    'currency', 'guilsinglleft', 'guilsinglright', 'fi', 'fl', 'daggerdbl',
+    'periodcentered', 'quotesinglbase', 'quotedblbase', 'perthousand',
+    'Acircumflex', 'Ecircumflex', 'Aacute', 'Edieresis', 'Egrave', 'Iacute',
+    'Icircumflex', 'Idieresis', 'Igrave', 'Oacute', 'Ocircumflex', 'apple',
+    'Ograve', 'Uacute', 'Ucircumflex', 'Ugrave', 'dotlessi', 'circumflex',
+    'tilde', 'macron', 'breve', 'dotaccent', 'ring', 'cedilla', 'hungarumlaut',
+    'ogonek', 'caron'],
+  StandardEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'exclam', 'quotedbl', 'numbersign', 'dollar', 'percent',
+    'ampersand', 'quoteright', 'parenleft', 'parenright', 'asterisk', 'plus',
+    'comma', 'hyphen', 'period', 'slash', 'zero', 'one', 'two', 'three',
+    'four', 'five', 'six', 'seven', 'eight', 'nine', 'colon', 'semicolon',
+    'less', 'equal', 'greater', 'question', 'at', 'A', 'B', 'C', 'D', 'E', 'F',
+    'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
+    'V', 'W', 'X', 'Y', 'Z', 'bracketleft', 'backslash', 'bracketright',
+    'asciicircum', 'underscore', 'quoteleft', 'a', 'b', 'c', 'd', 'e', 'f',
+    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
+    'v', 'w', 'x', 'y', 'z', 'braceleft', 'bar', 'braceright', 'asciitilde',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'exclamdown',
+    'cent', 'sterling', 'fraction', 'yen', 'florin', 'section', 'currency',
+    'quotesingle', 'quotedblleft', 'guillemotleft', 'guilsinglleft',
+    'guilsinglright', 'fi', 'fl', '', 'endash', 'dagger', 'daggerdbl',
+    'periodcentered', '', 'paragraph', 'bullet', 'quotesinglbase',
+    'quotedblbase', 'quotedblright', 'guillemotright', 'ellipsis',
+    'perthousand', '', 'questiondown', '', 'grave', 'acute', 'circumflex',
+    'tilde', 'macron', 'breve', 'dotaccent', 'dieresis', '', 'ring', 'cedilla',
+    '', 'hungarumlaut', 'ogonek', 'caron', 'emdash', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', 'AE', '', 'ordfeminine', '', '',
+    '', '', 'Lslash', 'Oslash', 'OE', 'ordmasculine', '', '', '', '', '', 'ae',
+    '', '', '', 'dotlessi', '', '', 'lslash', 'oslash', 'oe', 'germandbls'],
+  WinAnsiEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'exclam', 'quotedbl', 'numbersign', 'dollar', 'percent',
+    'ampersand', 'quotesingle', 'parenleft', 'parenright', 'asterisk', 'plus',
+    'comma', 'hyphen', 'period', 'slash', 'zero', 'one', 'two', 'three',
+    'four', 'five', 'six', 'seven', 'eight', 'nine', 'colon', 'semicolon',
+    'less', 'equal', 'greater', 'question', 'at', 'A', 'B', 'C', 'D', 'E', 'F',
+    'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
+    'V', 'W', 'X', 'Y', 'Z', 'bracketleft', 'backslash', 'bracketright',
+    'asciicircum', 'underscore', 'grave', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+    'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+    'w', 'x', 'y', 'z', 'braceleft', 'bar', 'braceright', 'asciitilde',
+    'bullet', 'Euro', 'bullet', 'quotesinglbase', 'florin', 'quotedblbase',
+    'ellipsis', 'dagger', 'daggerdbl', 'circumflex', 'perthousand', 'Scaron',
+    'guilsinglleft', 'OE', 'bullet', 'Zcaron', 'bullet', 'bullet', 'quoteleft',
+    'quoteright', 'quotedblleft', 'quotedblright', 'bullet', 'endash',
+    'emdash', 'tilde', 'trademark', 'scaron', 'guilsinglright', 'oe', 'bullet',
+    'zcaron', 'Ydieresis', 'space', 'exclamdown', 'cent', 'sterling',
+    'currency', 'yen', 'brokenbar', 'section', 'dieresis', 'copyright',
+    'ordfeminine', 'guillemotleft', 'logicalnot', 'hyphen', 'registered',
+    'macron', 'degree', 'plusminus', 'twosuperior', 'threesuperior', 'acute',
+    'mu', 'paragraph', 'periodcentered', 'cedilla', 'onesuperior',
+    'ordmasculine', 'guillemotright', 'onequarter', 'onehalf', 'threequarters',
+    'questiondown', 'Agrave', 'Aacute', 'Acircumflex', 'Atilde', 'Adieresis',
+    'Aring', 'AE', 'Ccedilla', 'Egrave', 'Eacute', 'Ecircumflex', 'Edieresis',
+    'Igrave', 'Iacute', 'Icircumflex', 'Idieresis', 'Eth', 'Ntilde', 'Ograve',
+    'Oacute', 'Ocircumflex', 'Otilde', 'Odieresis', 'multiply', 'Oslash',
+    'Ugrave', 'Uacute', 'Ucircumflex', 'Udieresis', 'Yacute', 'Thorn',
+    'germandbls', 'agrave', 'aacute', 'acircumflex', 'atilde', 'adieresis',
+    'aring', 'ae', 'ccedilla', 'egrave', 'eacute', 'ecircumflex', 'edieresis',
+    'igrave', 'iacute', 'icircumflex', 'idieresis', 'eth', 'ntilde', 'ograve',
+    'oacute', 'ocircumflex', 'otilde', 'odieresis', 'divide', 'oslash',
+    'ugrave', 'uacute', 'ucircumflex', 'udieresis', 'yacute', 'thorn',
+    'ydieresis'],
+  symbolsEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'exclam', 'universal', 'numbersign', 'existential', 'percent',
+    'ampersand', 'suchthat', 'parenleft', 'parenright', 'asteriskmath', 'plus',
+    'comma', 'minus', 'period', 'slash', 'zero', 'one', 'two', 'three', 'four',
+    'five', 'six', 'seven', 'eight', 'nine', 'colon', 'semicolon', 'less',
+    'equal', 'greater', 'question', 'congruent', 'Alpha', 'Beta', 'Chi',
+    'Delta', 'Epsilon', 'Phi', 'Gamma', 'Eta', 'Iota', 'theta1', 'Kappa',
+    'Lambda', 'Mu', 'Nu', 'Omicron', 'Pi', 'Theta', 'Rho', 'Sigma', 'Tau',
+    'Upsilon', 'sigma1', 'Omega', 'Xi', 'Psi', 'Zeta', 'bracketleft',
+    'therefore', 'bracketright', 'perpendicular', 'underscore', 'radicalex',
+    'alpha', 'beta', 'chi', 'delta', 'epsilon', 'phi', 'gamma', 'eta', 'iota',
+    'phi1', 'kappa', 'lambda', 'mu', 'nu', 'omicron', 'pi', 'theta', 'rho',
+    'sigma', 'tau', 'upsilon', 'omega1', 'omega', 'xi', 'psi', 'zeta',
+    'braceleft', 'bar', 'braceright', 'similar', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', 'Euro', 'Upsilon1', 'minute', 'lessequal',
+    'fraction', 'infinity', 'florin', 'club', 'diamond', 'heart', 'spade',
+    'arrowboth', 'arrowleft', 'arrowup', 'arrowright', 'arrowdown', 'degree',
+    'plusminus', 'second', 'greaterequal', 'multiply', 'proportional',
+    'partialdiff', 'bullet', 'divide', 'notequal', 'equivalence',
+    'approxequal', 'ellipsis', 'arrowvertex', 'arrowhorizex', 'carriagereturn',
+    'aleph', 'Ifraktur', 'Rfraktur', 'weierstrass', 'circlemultiply',
+    'circleplus', 'emptyset', 'intersection', 'union', 'propersuperset',
+    'reflexsuperset', 'notsubset', 'propersubset', 'reflexsubset', 'element',
+    'notelement', 'angle', 'gradient', 'registerserif', 'copyrightserif',
+    'trademarkserif', 'product', 'radical', 'dotmath', 'logicalnot',
+    'logicaland', 'logicalor', 'arrowdblboth', 'arrowdblleft', 'arrowdblup',
+    'arrowdblright', 'arrowdbldown', 'lozenge', 'angleleft', 'registersans',
+    'copyrightsans', 'trademarksans', 'summation', 'parenlefttp',
+    'parenleftex', 'parenleftbt', 'bracketlefttp', 'bracketleftex',
+    'bracketleftbt', 'bracelefttp', 'braceleftmid', 'braceleftbt', 'braceex',
+    '', 'angleright', 'integral', 'integraltp', 'integralex', 'integralbt',
+    'parenrighttp', 'parenrightex', 'parenrightbt', 'bracketrighttp',
+    'bracketrightex', 'bracketrightbt', 'bracerighttp', 'bracerightmid',
+    'bracerightbt'],
+  zapfDingbatsEncoding: ['', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    'space', 'a1', 'a2', 'a202', 'a3', 'a4', 'a5', 'a119', 'a118', 'a117',
+    'a11', 'a12', 'a13', 'a14', 'a15', 'a16', 'a105', 'a17', 'a18', 'a19',
+    'a20', 'a21', 'a22', 'a23', 'a24', 'a25', 'a26', 'a27', 'a28', 'a6', 'a7',
+    'a8', 'a9', 'a10', 'a29', 'a30', 'a31', 'a32', 'a33', 'a34', 'a35', 'a36',
+    'a37', 'a38', 'a39', 'a40', 'a41', 'a42', 'a43', 'a44', 'a45', 'a46',
+    'a47', 'a48', 'a49', 'a50', 'a51', 'a52', 'a53', 'a54', 'a55', 'a56',
+    'a57', 'a58', 'a59', 'a60', 'a61', 'a62', 'a63', 'a64', 'a65', 'a66',
+    'a67', 'a68', 'a69', 'a70', 'a71', 'a72', 'a73', 'a74', 'a203', 'a75',
+    'a204', 'a76', 'a77', 'a78', 'a79', 'a81', 'a82', 'a83', 'a84', 'a97',
+    'a98', 'a99', 'a100', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', 'a101', 'a102', 'a103', 'a104', 'a106', 'a107', 'a108', 'a112',
+    'a111', 'a110', 'a109', 'a120', 'a121', 'a122', 'a123', 'a124', 'a125',
+    'a126', 'a127', 'a128', 'a129', 'a130', 'a131', 'a132', 'a133', 'a134',
+    'a135', 'a136', 'a137', 'a138', 'a139', 'a140', 'a141', 'a142', 'a143',
+    'a144', 'a145', 'a146', 'a147', 'a148', 'a149', 'a150', 'a151', 'a152',
+    'a153', 'a154', 'a155', 'a156', 'a157', 'a158', 'a159', 'a160', 'a161',
+    'a163', 'a164', 'a196', 'a165', 'a192', 'a166', 'a167', 'a168', 'a169',
+    'a170', 'a171', 'a172', 'a173', 'a162', 'a174', 'a175', 'a176', 'a177',
+    'a178', 'a179', 'a193', 'a180', 'a199', 'a181', 'a200', 'a182', '', 'a201',
+    'a183', 'a184', 'a197', 'a185', 'a194', 'a198', 'a186', 'a195', 'a187',
+    'a188', 'a189', 'a190', 'a191']
 };
 
 /**
@@ -14013,6 +14055,16 @@ function getUnicodeRangeFor(value) {
   return -1;
 }
 
+function isRTLRangeFor(value) {
+  var range = UnicodeRanges[13];
+  if (value >= range.begin && value < range.end)
+    return true;
+  range = UnicodeRanges[11];
+  if (value >= range.begin && value < range.end)
+    return true;
+  return false;
+}
+
 function isSpecialUnicode(unicode) {
   return (unicode <= 0x1F || (unicode >= 127 && unicode < kSizeOfGlyphArea)) ||
     (unicode >= kCmapGlyphOffset &&
@@ -14072,6 +14124,8 @@ var Font = (function FontClosure() {
       this.toUnicode = properties.toUnicode;
     else
       this.rebuildToUnicode(properties);
+
+    this.toFontChar = this.buildToFontChar(this.toUnicode);
 
     if (!file) {
       // The file data is not specified. Trying to fix the font name
@@ -14898,6 +14952,18 @@ var Font = (function FontClosure() {
           itemEncode(locaData, j, writeOffset);
           startOffset = endOffset;
         }
+
+        if (writeOffset == 0) {
+          // glyf table cannot be empty -- redoing the glyf and loca tables
+          // to have single glyph with one point
+          var simpleGlyph = new Uint8Array(
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 49, 0]);
+          for (var i = 0, j = itemSize; i < numGlyphs; i++, j += itemSize)
+            itemEncode(locaData, j, simpleGlyph.length);
+          glyf.data = simpleGlyph;
+          return;
+        }
+
         glyf.data = newGlyfData.subarray(0, writeOffset);
       }
 
@@ -15082,9 +15148,9 @@ var Font = (function FontClosure() {
         var unassignedUnicodeItems = [];
         for (var i = 1; i < numGlyphs; i++) {
           var cid = gidToCidMap[i] || i;
-          var unicode = this.toUnicode[cid];
-          if (!unicode || isSpecialUnicode(unicode) ||
-              unicode in usedUnicodes) {
+          var unicode = this.toFontChar[cid];
+          if (!unicode || typeof unicode !== 'number' ||
+              isSpecialUnicode(unicode) || unicode in usedUnicodes) {
             unassignedUnicodeItems.push(i);
             continue;
           }
@@ -15103,7 +15169,7 @@ var Font = (function FontClosure() {
           if (unusedUnicode >= kCmapGlyphOffset + kSizeOfGlyphArea)
             break;
           var unicode = unusedUnicode++;
-          this.toUnicode[cid] = unicode;
+          this.toFontChar[cid] = unicode;
           usedUnicodes[unicode] = true;
           glyphs.push({ unicode: unicode, code: cid });
           ids.push(i);
@@ -15114,9 +15180,9 @@ var Font = (function FontClosure() {
         var glyphs = cmapTable.glyphs;
         var ids = cmapTable.ids;
         var hasShortCmap = !!cmapTable.hasShortCmap;
-        var toUnicode = this.toUnicode;
+        var toFontChar = this.toFontChar;
 
-        if (toUnicode && toUnicode.length > 0) {
+        if (toFontChar && toFontChar.length > 0) {
           // checking if cmap is just identity map
           var isIdentity = true;
           for (var i = 0, ii = glyphs.length; i < ii; i++) {
@@ -15126,11 +15192,12 @@ var Font = (function FontClosure() {
             }
           }
           // if it is, replacing with meaningful toUnicode values
-          if (isIdentity) {
+          if (isIdentity && !this.isSymbolicFont) {
             var usedUnicodes = [], unassignedUnicodeItems = [];
             for (var i = 0, ii = glyphs.length; i < ii; i++) {
-              var unicode = toUnicode[i + 1];
-              if (!unicode || unicode in usedUnicodes) {
+              var unicode = toFontChar[i + 1];
+              if (!unicode || typeof unicode !== 'number' ||
+                  unicode in usedUnicodes) {
                 unassignedUnicodeItems.push(i);
                 continue;
               }
@@ -15144,11 +15211,11 @@ var Font = (function FontClosure() {
                 unusedUnicode++;
               var cid = i + 1;
               // override only if unicode mapping is not specified
-              if (!(cid in toUnicode))
-                toUnicode[cid] = unusedUnicode;
+              if (!(cid in toFontChar))
+                toFontChar[cid] = unusedUnicode;
               glyphs[i].unicode = unusedUnicode++;
             }
-            this.useToUnicode = true;
+            this.useToFontChar = true;
           }
         }
 
@@ -15176,6 +15243,16 @@ var Font = (function FontClosure() {
               ids.push(ids[i]);
             }
           }
+        }
+
+        // Moving all symbolic font glyphs into 0xF000 - 0xF0FF range.
+        if (this.isSymbolicFont) {
+          for (var i = 0, ii = glyphs.length; i < ii; i++) {
+            var code = glyphs[i].unicode & 0xFF;
+            var fontCharCode = kSymbolicFontGlyphOffset | code;
+            glyphs[i].unicode = toFontChar[code] = fontCharCode;
+          }
+          this.useToFontChar = true;
         }
 
         // remove glyph references outside range of avaialable glyphs
@@ -15278,12 +15355,12 @@ var Font = (function FontClosure() {
         properties.baseEncoding = encoding;
       }
       if (properties.subtype == 'CIDFontType0C') {
-        var toUnicode = [];
+        var toFontChar = [];
         for (var i = 0; i < charstrings.length; ++i) {
           var charstring = charstrings[i];
-          toUnicode[charstring.code] = charstring.unicode;
+          toFontChar[charstring.code] = charstring.unicode;
         }
-        this.toUnicode = toUnicode;
+        this.toFontChar = toFontChar;
       }
 
       var fields = {
@@ -15376,6 +15453,19 @@ var Font = (function FontClosure() {
       }
 
       return stringToArray(otf.file);
+    },
+
+    buildToFontChar: function font_buildToFontChar(toUnicode) {
+      var result = [];
+      var unusedUnicode = kCmapGlyphOffset;
+      for (var i = 0, ii = toUnicode.length; i < ii; i++) {
+        var unicode = toUnicode[i];
+        var fontCharCode = typeof unicode === 'object' ? unusedUnicode++ :
+          unicode;
+        if (typeof unicode !== 'undefined')
+          result[i] = fontCharCode;
+      }
+      return result;
     },
 
     rebuildToUnicode: function font_rebuildToUnicode(properties) {
@@ -15513,7 +15603,7 @@ var Font = (function FontClosure() {
     },
 
     charToGlyph: function fonts_charToGlyph(charcode) {
-      var unicode, width, codeIRQueue;
+      var fontCharCode, width, codeIRQueue;
 
       var width = this.widths[charcode];
 
@@ -15521,38 +15611,39 @@ var Font = (function FontClosure() {
         case 'CIDFontType0':
           if (this.noUnicodeAdaptation) {
             width = this.widths[this.unicodeToCID[charcode] || charcode];
-            unicode = mapPrivateUseChars(charcode);
+            fontCharCode = mapPrivateUseChars(charcode);
             break;
           }
-          unicode = this.toUnicode[charcode] || charcode;
+          fontCharCode = this.toFontChar[charcode] || charcode;
           break;
         case 'CIDFontType2':
           if (this.noUnicodeAdaptation) {
             width = this.widths[this.unicodeToCID[charcode] || charcode];
-            unicode = mapPrivateUseChars(charcode);
+            fontCharCode = mapPrivateUseChars(charcode);
             break;
           }
-          unicode = this.toUnicode[charcode] || charcode;
+          fontCharCode = this.toFontChar[charcode] || charcode;
           break;
         case 'Type1':
           var glyphName = this.differences[charcode] || this.encoding[charcode];
           if (!isNum(width))
             width = this.widths[glyphName];
           if (this.noUnicodeAdaptation) {
-            unicode = mapPrivateUseChars(GlyphsUnicode[glyphName] || charcode);
+            fontCharCode = mapPrivateUseChars(GlyphsUnicode[glyphName] ||
+              charcode);
             break;
           }
-          unicode = this.glyphNameMap[glyphName] ||
+          fontCharCode = this.glyphNameMap[glyphName] ||
             GlyphsUnicode[glyphName] || charcode;
           break;
         case 'Type3':
           var glyphName = this.differences[charcode] || this.encoding[charcode];
           codeIRQueue = this.charProcIRQueues[glyphName];
-          unicode = charcode;
+          fontCharCode = charcode;
           break;
         case 'TrueType':
-          if (this.useToUnicode) {
-            unicode = this.toUnicode[charcode] || charcode;
+          if (this.useToFontChar) {
+            fontCharCode = this.toFontChar[charcode] || charcode;
             break;
           }
           var glyphName = this.differences[charcode] || this.encoding[charcode];
@@ -15561,16 +15652,17 @@ var Font = (function FontClosure() {
           if (!isNum(width))
             width = this.widths[glyphName];
           if (this.noUnicodeAdaptation) {
-            unicode = GlyphsUnicode[glyphName] || charcode;
+            fontCharCode = GlyphsUnicode[glyphName] || charcode;
             break;
           }
           if (!this.hasEncoding || this.isSymbolicFont) {
-            unicode = this.useToUnicode ? this.toUnicode[charcode] : charcode;
+            fontCharCode = this.useToFontChar ? this.toFontChar[charcode] :
+              charcode;
             break;
           }
 
           // MacRoman encoding address by re-encoding the cmap table
-          unicode = glyphName in this.glyphNameMap ?
+          fontCharCode = glyphName in this.glyphNameMap ?
             this.glyphNameMap[glyphName] : GlyphsUnicode[glyphName];
           break;
         default:
@@ -15586,7 +15678,7 @@ var Font = (function FontClosure() {
       width = (isNum(width) ? width : this.defaultWidth) * this.widthMultiplier;
 
       return {
-        fontChar: String.fromCharCode(unicode),
+        fontChar: String.fromCharCode(fontCharCode),
         unicode: unicodeChars,
         width: width,
         codeIRQueue: codeIRQueue
@@ -24878,17 +24970,17 @@ var Parser = (function ParserClosure() {
       // parse image stream
       var startPos = stream.pos;
 
-      // searching for the /\sEI\s/
+      // searching for the /EI\s/
       var state = 0, ch;
       while (state != 4 && (ch = stream.getByte()) != null) {
         switch (ch) {
           case 0x20:
           case 0x0D:
           case 0x0A:
-            state = state === 3 ? 4 : 1;
+            state = state === 3 ? 4 : 0;
             break;
           case 0x45:
-            state = state === 1 ? 2 : 0;
+            state = 2;
             break;
           case 0x49:
             state = state === 2 ? 3 : 0;
@@ -30212,7 +30304,7 @@ var JpxImage = (function JpxImageClosure() {
         }
         r = 0;
       }
-      error('JPX error: Out of packets');
+      throw 'Out of packets';
     };
   }
   function ResolutionLayerComponentPositionIterator(context) {
@@ -30251,7 +30343,7 @@ var JpxImage = (function JpxImageClosure() {
         }
         l = 0;
       }
-      error('JPX error: Out of packets');
+      throw 'Out of packets';
     };
   }
   function buildPackets(context) {
@@ -30347,7 +30439,7 @@ var JpxImage = (function JpxImageClosure() {
           new ResolutionLayerComponentPositionIterator(context);
         break;
       default:
-        error('JPX error: Unsupported progression order ' + progressionOrder);
+        throw 'Unsupported progression order ' + progressionOrder;
     }
   }
   function parseTilePackets(context, data, offset, dataLength) {
@@ -30713,6 +30805,7 @@ var JpxImage = (function JpxImageClosure() {
   }
 
   function JpxImage() {
+    this.failOnCorruptedImage = false;
   }
   JpxImage.prototype = {
     load: function jpxImageLoad(url) {
@@ -30772,237 +30865,244 @@ var JpxImage = (function JpxImageClosure() {
     },
     parseCodestream: function jpxImageParseCodestream(data, start, end) {
       var context = {};
-      var position = start;
-      while (position < end) {
-        var code = readUint16(data, position);
-        position += 2;
+      try {
+        var position = start;
+        while (position < end) {
+          var code = readUint16(data, position);
+          position += 2;
 
-        var length = 0, j;
-        switch (code) {
-          case 0xFF4F: // Start of codestream (SOC)
-            context.mainHeader = true;
-            break;
-          case 0xFFD9: // End of codestream (EOC)
-            break;
-          case 0xFF51: // Image and tile size (SIZ)
-            length = readUint16(data, position);
-            var siz = {};
-            siz.Xsiz = readUint32(data, position + 4);
-            siz.Ysiz = readUint32(data, position + 8);
-            siz.XOsiz = readUint32(data, position + 12);
-            siz.YOsiz = readUint32(data, position + 16);
-            siz.XTsiz = readUint32(data, position + 20);
-            siz.YTsiz = readUint32(data, position + 24);
-            siz.XTOsiz = readUint32(data, position + 28);
-            siz.YTOsiz = readUint32(data, position + 32);
-            var componentsCount = readUint16(data, position + 36);
-            siz.Csiz = componentsCount;
-            var components = [];
-            j = position + 38;
-            for (var i = 0; i < componentsCount; i++) {
-              var component = {
-                precision: (data[j] & 0x7F) + 1,
-                isSigned: !!(data[j] & 0x80),
-                XRsiz: data[j + 1],
-                YRsiz: data[j + 1]
-              };
-              calculateComponentDimensions(component, siz);
-              components.push(component);
-            }
-            context.SIZ = siz;
-            context.components = components;
-            calculateTileGrids(context, components);
-            context.QCC = [];
-            context.COC = [];
-            break;
-          case 0xFF5C: // Quantization default (QCD)
-            length = readUint16(data, position);
-            var qcd = {};
-            j = position + 2;
-            var sqcd = data[j++];
-            var spqcdSize, scalarExpounded;
-            switch (sqcd & 0x1F) {
-              case 0:
-                spqcdSize = 8;
-                scalarExpounded = true;
-                break;
-              case 1:
-                spqcdSize = 16;
-                scalarExpounded = false;
-                break;
-              case 2:
-                spqcdSize = 16;
-                scalarExpounded = true;
-                break;
-              default:
-                error('JPX error: Invalid SQcd value ' + sqcd);
-            }
-            qcd.noQuantization = spqcdSize == 8;
-            qcd.scalarExpounded = scalarExpounded;
-            qcd.guardBits = sqcd >> 5;
-            var spqcds = [];
-            while (j < length + position) {
-              var spqcd = {};
-              if (spqcdSize == 8) {
-                spqcd.epsilon = data[j++] >> 3;
-                spqcd.mu = 0;
-              } else {
-                spqcd.epsilon = data[j] >> 3;
-                spqcd.mu = ((data[j] & 0x7) << 8) | data[j + 1];
-                j += 2;
+          var length = 0, j;
+          switch (code) {
+            case 0xFF4F: // Start of codestream (SOC)
+              context.mainHeader = true;
+              break;
+            case 0xFFD9: // End of codestream (EOC)
+              break;
+            case 0xFF51: // Image and tile size (SIZ)
+              length = readUint16(data, position);
+              var siz = {};
+              siz.Xsiz = readUint32(data, position + 4);
+              siz.Ysiz = readUint32(data, position + 8);
+              siz.XOsiz = readUint32(data, position + 12);
+              siz.YOsiz = readUint32(data, position + 16);
+              siz.XTsiz = readUint32(data, position + 20);
+              siz.YTsiz = readUint32(data, position + 24);
+              siz.XTOsiz = readUint32(data, position + 28);
+              siz.YTOsiz = readUint32(data, position + 32);
+              var componentsCount = readUint16(data, position + 36);
+              siz.Csiz = componentsCount;
+              var components = [];
+              j = position + 38;
+              for (var i = 0; i < componentsCount; i++) {
+                var component = {
+                  precision: (data[j] & 0x7F) + 1,
+                  isSigned: !!(data[j] & 0x80),
+                  XRsiz: data[j + 1],
+                  YRsiz: data[j + 1]
+                };
+                calculateComponentDimensions(component, siz);
+                components.push(component);
               }
-              spqcds.push(spqcd);
-            }
-            qcd.SPqcds = spqcds;
-            if (context.mainHeader)
-              context.QCD = qcd;
-            else {
-              context.currentTile.QCD = qcd;
-              context.currentTile.QCC = [];
-            }
-            break;
-          case 0xFF5D: // Quantization component (QCC)
-            length = readUint16(data, position);
-            var qcc = {};
-            j = position + 2;
-            var cqcc;
-            if (context.SIZ.Csiz < 257)
-              cqcc = data[j++];
-            else {
-              cqcc = readUint16(data, j);
-              j += 2;
-            }
-            var sqcd = data[j++];
-            var spqcdSize, scalarExpounded;
-            switch (sqcd & 0x1F) {
-              case 0:
-                spqcdSize = 8;
-                scalarExpounded = true;
-                break;
-              case 1:
-                spqcdSize = 16;
-                scalarExpounded = false;
-                break;
-              case 2:
-                spqcdSize = 16;
-                scalarExpounded = true;
-                break;
-              default:
-                error('JPX error: Invalid SQcd value ' + sqcd);
-            }
-            qcc.noQuantization = spqcdSize == 8;
-            qcc.scalarExpounded = scalarExpounded;
-            qcc.guardBits = sqcd >> 5;
-            var spqcds = [];
-            while (j < length + position) {
-              var spqcd = {};
-              if (spqcdSize == 8) {
-                spqcd.epsilon = data[j++] >> 3;
-                spqcd.mu = 0;
-              } else {
-                spqcd.epsilon = data[j] >> 3;
-                spqcd.mu = ((data[j] & 0x7) << 8) | data[j + 1];
-                j += 2;
+              context.SIZ = siz;
+              context.components = components;
+              calculateTileGrids(context, components);
+              context.QCC = [];
+              context.COC = [];
+              break;
+            case 0xFF5C: // Quantization default (QCD)
+              length = readUint16(data, position);
+              var qcd = {};
+              j = position + 2;
+              var sqcd = data[j++];
+              var spqcdSize, scalarExpounded;
+              switch (sqcd & 0x1F) {
+                case 0:
+                  spqcdSize = 8;
+                  scalarExpounded = true;
+                  break;
+                case 1:
+                  spqcdSize = 16;
+                  scalarExpounded = false;
+                  break;
+                case 2:
+                  spqcdSize = 16;
+                  scalarExpounded = true;
+                  break;
+                default:
+                  throw 'Invalid SQcd value ' + sqcd;
               }
-              spqcds.push(spqcd);
-            }
-            qcc.SPqcds = spqcds;
-            if (context.mainHeader)
-              context.QCC[cqcc] = qcc;
-            else
-              context.currentTile.QCC[cqcc] = qcc;
-            break;
-          case 0xFF52: // Coding style default (COD)
-            length = readUint16(data, position);
-            var cod = {};
-            j = position + 2;
-            var scod = data[j++];
-            cod.entropyCoderWithCustomPrecincts = !!(scod & 1);
-            cod.sopMarkerUsed = !!(scod & 2);
-            cod.ephMarkerUsed = !!(scod & 4);
-            var codingStyle = {};
-            cod.progressionOrder = data[j++];
-            cod.layersCount = readUint16(data, j);
-            j += 2;
-            cod.multipleComponentTransform = data[j++];
-
-            cod.decompositionLevelsCount = data[j++];
-            cod.xcb = (data[j++] & 0xF) + 2;
-            cod.ycb = (data[j++] & 0xF) + 2;
-            var blockStyle = data[j++];
-            cod.selectiveArithmeticCodingBypass = !!(blockStyle & 1);
-            cod.resetContextProbabilities = !!(blockStyle & 2);
-            cod.terminationOnEachCodingPass = !!(blockStyle & 4);
-            cod.verticalyStripe = !!(blockStyle & 8);
-            cod.predictableTermination = !!(blockStyle & 16);
-            cod.segmentationSymbolUsed = !!(blockStyle & 32);
-            cod.transformation = data[j++];
-            if (cod.entropyCoderWithCustomPrecincts) {
-              var precinctsSizes = {};
+              qcd.noQuantization = spqcdSize == 8;
+              qcd.scalarExpounded = scalarExpounded;
+              qcd.guardBits = sqcd >> 5;
+              var spqcds = [];
               while (j < length + position) {
-                var precinctsSize = data[j];
-                precinctsSizes.push({
-                  PPx: precinctsSize & 0xF,
-                  PPy: precinctsSize >> 4
-                });
+                var spqcd = {};
+                if (spqcdSize == 8) {
+                  spqcd.epsilon = data[j++] >> 3;
+                  spqcd.mu = 0;
+                } else {
+                  spqcd.epsilon = data[j] >> 3;
+                  spqcd.mu = ((data[j] & 0x7) << 8) | data[j + 1];
+                  j += 2;
+                }
+                spqcds.push(spqcd);
               }
-              cod.precinctsSizes = precinctsSizes;
-            }
+              qcd.SPqcds = spqcds;
+              if (context.mainHeader)
+                context.QCD = qcd;
+              else {
+                context.currentTile.QCD = qcd;
+                context.currentTile.QCC = [];
+              }
+              break;
+            case 0xFF5D: // Quantization component (QCC)
+              length = readUint16(data, position);
+              var qcc = {};
+              j = position + 2;
+              var cqcc;
+              if (context.SIZ.Csiz < 257)
+                cqcc = data[j++];
+              else {
+                cqcc = readUint16(data, j);
+                j += 2;
+              }
+              var sqcd = data[j++];
+              var spqcdSize, scalarExpounded;
+              switch (sqcd & 0x1F) {
+                case 0:
+                  spqcdSize = 8;
+                  scalarExpounded = true;
+                  break;
+                case 1:
+                  spqcdSize = 16;
+                  scalarExpounded = false;
+                  break;
+                case 2:
+                  spqcdSize = 16;
+                  scalarExpounded = true;
+                  break;
+                default:
+                  throw 'Invalid SQcd value ' + sqcd;
+              }
+              qcc.noQuantization = spqcdSize == 8;
+              qcc.scalarExpounded = scalarExpounded;
+              qcc.guardBits = sqcd >> 5;
+              var spqcds = [];
+              while (j < length + position) {
+                var spqcd = {};
+                if (spqcdSize == 8) {
+                  spqcd.epsilon = data[j++] >> 3;
+                  spqcd.mu = 0;
+                } else {
+                  spqcd.epsilon = data[j] >> 3;
+                  spqcd.mu = ((data[j] & 0x7) << 8) | data[j + 1];
+                  j += 2;
+                }
+                spqcds.push(spqcd);
+              }
+              qcc.SPqcds = spqcds;
+              if (context.mainHeader)
+                context.QCC[cqcc] = qcc;
+              else
+                context.currentTile.QCC[cqcc] = qcc;
+              break;
+            case 0xFF52: // Coding style default (COD)
+              length = readUint16(data, position);
+              var cod = {};
+              j = position + 2;
+              var scod = data[j++];
+              cod.entropyCoderWithCustomPrecincts = !!(scod & 1);
+              cod.sopMarkerUsed = !!(scod & 2);
+              cod.ephMarkerUsed = !!(scod & 4);
+              var codingStyle = {};
+              cod.progressionOrder = data[j++];
+              cod.layersCount = readUint16(data, j);
+              j += 2;
+              cod.multipleComponentTransform = data[j++];
 
-            if (cod.sopMarkerUsed || cod.ephMarkerUsed ||
-                cod.selectiveArithmeticCodingBypass ||
-                cod.resetContextProbabilities ||
-                cod.terminationOnEachCodingPass ||
-                cod.verticalyStripe || cod.predictableTermination ||
-                cod.segmentationSymbolUsed)
-              error('JPX error: Unsupported COD options: ' + uneval(cod));
+              cod.decompositionLevelsCount = data[j++];
+              cod.xcb = (data[j++] & 0xF) + 2;
+              cod.ycb = (data[j++] & 0xF) + 2;
+              var blockStyle = data[j++];
+              cod.selectiveArithmeticCodingBypass = !!(blockStyle & 1);
+              cod.resetContextProbabilities = !!(blockStyle & 2);
+              cod.terminationOnEachCodingPass = !!(blockStyle & 4);
+              cod.verticalyStripe = !!(blockStyle & 8);
+              cod.predictableTermination = !!(blockStyle & 16);
+              cod.segmentationSymbolUsed = !!(blockStyle & 32);
+              cod.transformation = data[j++];
+              if (cod.entropyCoderWithCustomPrecincts) {
+                var precinctsSizes = {};
+                while (j < length + position) {
+                  var precinctsSize = data[j];
+                  precinctsSizes.push({
+                    PPx: precinctsSize & 0xF,
+                    PPy: precinctsSize >> 4
+                  });
+                }
+                cod.precinctsSizes = precinctsSizes;
+              }
 
-            if (context.mainHeader)
-              context.COD = cod;
-            else {
-              context.currentTile.COD = cod;
-              context.currentTile.COC = [];
-            }
-            break;
-          case 0xFF90: // Start of tile-part (SOT)
-            length = readUint16(data, position);
-            var tile = {};
-            tile.index = readUint16(data, position + 2);
-            tile.length = readUint32(data, position + 4);
-            tile.dataEnd = tile.length + position - 2;
-            tile.partIndex = data[position + 8];
-            tile.partsCount = data[position + 9];
+              if (cod.sopMarkerUsed || cod.ephMarkerUsed ||
+                  cod.selectiveArithmeticCodingBypass ||
+                  cod.resetContextProbabilities ||
+                  cod.terminationOnEachCodingPass ||
+                  cod.verticalyStripe || cod.predictableTermination ||
+                  cod.segmentationSymbolUsed)
+                throw 'Unsupported COD options: ' + uneval(cod);
 
-            context.mainHeader = false;
-            if (tile.partIndex == 0) {
-              // reset component specific settings
-              tile.COD = context.COD;
-              tile.COC = context.COC.slice(0); // clone of the global COC
-              tile.QCD = context.QCD;
-              tile.QCC = context.QCC.slice(0); // clone of the global COC
-            }
-            context.currentTile = tile;
-            break;
-          case 0xFF93: // Start of data (SOD)
-            var tile = context.currentTile;
-            if (tile.partIndex == 0) {
-              initializeTile(context, tile.index);
-              buildPackets(context);
-            }
+              if (context.mainHeader)
+                context.COD = cod;
+              else {
+                context.currentTile.COD = cod;
+                context.currentTile.COC = [];
+              }
+              break;
+            case 0xFF90: // Start of tile-part (SOT)
+              length = readUint16(data, position);
+              var tile = {};
+              tile.index = readUint16(data, position + 2);
+              tile.length = readUint32(data, position + 4);
+              tile.dataEnd = tile.length + position - 2;
+              tile.partIndex = data[position + 8];
+              tile.partsCount = data[position + 9];
 
-            // moving to the end of the data
-            length = tile.dataEnd - position;
+              context.mainHeader = false;
+              if (tile.partIndex == 0) {
+                // reset component specific settings
+                tile.COD = context.COD;
+                tile.COC = context.COC.slice(0); // clone of the global COC
+                tile.QCD = context.QCD;
+                tile.QCC = context.QCC.slice(0); // clone of the global COC
+              }
+              context.currentTile = tile;
+              break;
+            case 0xFF93: // Start of data (SOD)
+              var tile = context.currentTile;
+              if (tile.partIndex == 0) {
+                initializeTile(context, tile.index);
+                buildPackets(context);
+              }
 
-            parseTilePackets(context, data, position, length);
-            break;
-          case 0xFF64: // Comment (COM)
-            length = readUint16(data, position);
-            // skipping content
-            break;
-          default:
-            error('JPX error: Unknown codestream code: ' + code.toString(16));
+              // moving to the end of the data
+              length = tile.dataEnd - position;
+
+              parseTilePackets(context, data, position, length);
+              break;
+            case 0xFF64: // Comment (COM)
+              length = readUint16(data, position);
+              // skipping content
+              break;
+            default:
+              throw 'Unknown codestream code: ' + code.toString(16);
+          }
+          position += length;
         }
-        position += length;
+      } catch (e) {
+        if (this.failOnCorruptedImage)
+          error('JPX error: ' + e);
+        else
+          warn('JPX error: ' + e + '. Trying to recover');
       }
       this.tiles = transformComponents(context);
       this.width = context.SIZ.Xsiz - context.SIZ.XOsiz;
@@ -31011,6 +31111,439 @@ var JpxImage = (function JpxImageClosure() {
     }
   };
   return JpxImage;
+})();
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+
+'use strict';
+
+var bidi = PDFJS.bidi = (function bidiClosure() {
+  // Character types for symbols from 0000 to 00FF.
+  var baseTypes = [
+    'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'S', 'B', 'S', 'WS',
+    'B', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN',
+    'BN', 'BN', 'B', 'B', 'B', 'S', 'WS', 'ON', 'ON', 'ET', 'ET', 'ET', 'ON',
+    'ON', 'ON', 'ON', 'ON', 'ON', 'CS', 'ON', 'CS', 'ON', 'EN', 'EN', 'EN',
+    'EN', 'EN', 'EN', 'EN', 'EN', 'EN', 'EN', 'ON', 'ON', 'ON', 'ON', 'ON',
+    'ON', 'ON', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'ON', 'ON',
+    'ON', 'ON', 'ON', 'ON', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'ON', 'ON', 'ON', 'ON', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'B', 'BN',
+    'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN',
+    'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN', 'BN',
+    'BN', 'CS', 'ON', 'ET', 'ET', 'ET', 'ET', 'ON', 'ON', 'ON', 'ON', 'L', 'ON',
+    'ON', 'ON', 'ON', 'ON', 'ET', 'ET', 'EN', 'EN', 'ON', 'L', 'ON', 'ON', 'ON',
+    'EN', 'L', 'ON', 'ON', 'ON', 'ON', 'ON', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'ON', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L',
+    'L', 'L', 'L', 'ON', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'L'
+  ];
+
+  // Character types for symbols from 0600 to 06FF
+  var arabicTypes = [
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'CS', 'AL', 'ON', 'ON', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM',
+    'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AN', 'AN', 'AN', 'AN', 'AN', 'AN', 'AN', 'AN', 'AN',
+    'AN', 'ET', 'AN', 'AN', 'AL', 'AL', 'AL', 'NSM', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM',
+    'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'NSM', 'ON', 'NSM',
+    'NSM', 'NSM', 'NSM', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL',
+    'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL', 'AL'
+  ];
+
+  function isOdd(i) {
+    return (i & 1) != 0;
+  }
+
+  function isEven(i) {
+    return (i & 1) == 0;
+  }
+
+  function findUnequal(arr, start, value) {
+    var j;
+    for (var j = start, jj = arr.length; j < jj; ++j) {
+      if (arr[j] != value)
+        return j;
+    }
+    return j;
+  }
+
+  function setValues(arr, start, end, value) {
+    for (var j = start; j < end; ++j) {
+      arr[j] = value;
+    }
+  }
+
+  function reverseValues(arr, start, end) {
+    for (var i = start, j = end - 1; i < j; ++i, --j) {
+      var temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
+
+  function mirrorGlyphs(c) {
+    /*
+     # BidiMirroring-1.txt
+     0028; 0029 # LEFT PARENTHESIS
+     0029; 0028 # RIGHT PARENTHESIS
+     003C; 003E # LESS-THAN SIGN
+     003E; 003C # GREATER-THAN SIGN
+     005B; 005D # LEFT SQUARE BRACKET
+     005D; 005B # RIGHT SQUARE BRACKET
+     007B; 007D # LEFT CURLY BRACKET
+     007D; 007B # RIGHT CURLY BRACKET
+     00AB; 00BB # LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+     00BB; 00AB # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+     */
+    switch (c) {
+      case '(':
+        return ')';
+      case ')':
+        return '(';
+      case '<':
+        return '>';
+      case '>':
+        return '<';
+      case ']':
+        return '[';
+      case '[':
+        return ']';
+      case '}':
+        return '{';
+      case '{':
+        return '}';
+      case '\u00AB':
+        return '\u00BB';
+      case '\u00BB':
+        return '\u00AB';
+      default:
+        return c;
+    }
+  }
+
+  return (function bidi(text, startLevel) {
+    var str = text.str;
+    var strLength = str.length;
+    if (strLength == 0)
+      return str;
+
+    // get types, fill arrays
+
+    var chars = new Array(strLength);
+    var types = new Array(strLength);
+    var oldtypes = new Array(strLength);
+    var numBidi = 0;
+
+    for (var i = 0; i < strLength; ++i) {
+      chars[i] = str.charAt(i);
+
+      var charCode = str.charCodeAt(i);
+      var charType = 'L';
+      if (charCode <= 0x00ff)
+        charType = baseTypes[charCode];
+      else if (0x0590 <= charCode && charCode <= 0x05f4)
+        charType = 'R';
+      else if (0x0600 <= charCode && charCode <= 0x06ff)
+        charType = arabicTypes[charCode & 0xff];
+      else if (0x0700 <= charCode && charCode <= 0x08AC)
+        charType = 'AL';
+
+      if (charType == 'R' || charType == 'AL' || charType == 'AN')
+        numBidi++;
+
+      oldtypes[i] = types[i] = charType;
+    }
+
+    // detect the bidi method
+    //  if there are no rtl characters then no bidi needed
+    //  if less than 30% chars are rtl then string is primarily ltr
+    //  if more than 30% chars are rtl then string is primarily rtl
+    if (numBidi == 0) {
+      text.direction = 'ltr';
+      return str;
+    }
+
+    if (startLevel == -1) {
+      if ((strLength / numBidi) < 0.3) {
+        text.direction = 'ltr';
+        startLevel = 0;
+      } else {
+        text.direction = 'rtl';
+        startLevel = 1;
+      }
+    }
+
+    var levels = new Array(strLength);
+
+    for (var i = 0; i < strLength; ++i) {
+      levels[i] = startLevel;
+    }
+
+    var diffChars = new Array(strLength);
+    var diffLevels = new Array(strLength);
+    var diffTypes = new Array(strLength);
+
+    /*
+     X1-X10: skip most of this, since we are NOT doing the embeddings.
+     */
+
+    var e = isOdd(startLevel) ? 'R' : 'L';
+    var sor = e;
+    var eor = sor;
+
+    /*
+     W1. Examine each non-spacing mark (NSM) in the level run, and change the
+     type of the NSM to the type of the previous character. If the NSM is at the
+     start of the level run, it will get the type of sor.
+     */
+
+    var lastType = sor;
+    for (var i = 0; i < strLength; ++i) {
+      if (types[i] == 'NSM')
+        types[i] = lastType;
+      else
+        lastType = types[i];
+    }
+
+    /*
+     W2. Search backwards from each instance of a European number until the
+     first strong type (R, L, AL, or sor) is found.  If an AL is found, change
+     the type of the European number to Arabic number.
+     */
+
+    var lastType = sor;
+    for (var i = 0; i < strLength; ++i) {
+      var t = types[i];
+      if (t == 'EN')
+        types[i] = (lastType == 'AL') ? 'AN' : 'EN';
+      else if (t == 'R' || t == 'L' || t == 'AL')
+        lastType = t;
+    }
+
+    /*
+     W3. Change all ALs to R.
+     */
+
+    for (var i = 0; i < strLength; ++i) {
+      var t = types[i];
+      if (t == 'AL')
+        types[i] = 'R';
+    }
+
+    /*
+     W4. A single European separator between two European numbers changes to a
+     European number. A single common separator between two numbers of the same
+     type changes to that type:
+     */
+
+    for (var i = 1; i < strLength - 1; ++i) {
+      if (types[i] == 'ES' && types[i - 1] == 'EN' && types[i + 1] == 'EN')
+        types[i] = 'EN';
+      if (types[i] == 'CS' && (types[i - 1] == 'EN' || types[i - 1] == 'AN') &&
+          types[i + 1] == types[i - 1])
+        types[i] = types[i - 1];
+    }
+
+    /*
+     W5. A sequence of European terminators adjacent to European numbers changes
+     to all European numbers:
+     */
+
+    for (var i = 0; i < strLength; ++i) {
+      if (types[i] == 'EN') {
+        // do before
+        for (var j = i - 1; j >= 0; --j) {
+          if (types[j] != 'ET')
+            break;
+          types[j] = 'EN';
+        }
+        // do after
+        for (var j = i + 1; j < strLength; --j) {
+          if (types[j] != 'ET')
+            break;
+          types[j] = 'EN';
+        }
+      }
+    }
+
+    /*
+     W6. Otherwise, separators and terminators change to Other Neutral:
+     */
+
+    for (var i = 0; i < strLength; ++i) {
+      var t = types[i];
+      if (t == 'WS' || t == 'ES' || t == 'ET' || t == 'CS')
+        types[i] = 'ON';
+    }
+
+    /*
+     W7. Search backwards from each instance of a European number until the
+     first strong type (R, L, or sor) is found. If an L is found,  then change
+     the type of the European number to L.
+     */
+
+    var lastType = sor;
+    for (var i = 0; i < strLength; ++i) {
+      var t = types[i];
+      if (t == 'EN')
+        types[i] = (lastType == 'L') ? 'L' : 'EN';
+      else if (t == 'R' || t == 'L')
+        lastType = t;
+    }
+
+    /*
+     N1. A sequence of neutrals takes the direction of the surrounding strong
+     text if the text on both sides has the same direction. European and Arabic
+     numbers are treated as though they were R. Start-of-level-run (sor) and
+     end-of-level-run (eor) are used at level run boundaries.
+     */
+
+    for (var i = 0; i < strLength; ++i) {
+      if (types[i] == 'ON') {
+        var end = findUnequal(types, i + 1, 'ON');
+        var before = sor;
+        if (i > 0)
+          before = types[i - 1];
+        var after = eor;
+        if (end + 1 < strLength)
+          after = types[end + 1];
+        if (before != 'L')
+          before = 'R';
+        if (after != 'L')
+          after = 'R';
+        if (before == after)
+          setValues(types, i, end, before);
+        i = end - 1; // reset to end (-1 so next iteration is ok)
+      }
+    }
+
+    /*
+     N2. Any remaining neutrals take the embedding direction.
+     */
+
+    for (var i = 0; i < strLength; ++i) {
+      if (types[i] == 'ON')
+        types[i] = e;
+    }
+
+    /*
+     I1. For all characters with an even (left-to-right) embedding direction,
+     those of type R go up one level and those of type AN or EN go up two
+     levels.
+     I2. For all characters with an odd (right-to-left) embedding direction,
+     those of type L, EN or AN go up one level.
+     */
+
+    for (var i = 0; i < strLength; ++i) {
+      var t = types[i];
+      if (isEven(levels[i])) {
+        if (t == 'R') {
+          levels[i] += 1;
+        } else if (t == 'AN' || t == 'EN') {
+          levels[i] += 2;
+        }
+      } else { // isOdd, so
+        if (t == 'L' || t == 'AN' || t == 'EN') {
+          levels[i] += 1;
+        }
+      }
+    }
+
+    /*
+     L1. On each line, reset the embedding level of the following characters to
+     the paragraph embedding level:
+
+     segment separators,
+     paragraph separators,
+     any sequence of whitespace characters preceding a segment separator or
+     paragraph separator, and any sequence of white space characters at the end
+     of the line.
+     */
+
+    // don't bother as text is only single line
+
+    /*
+     L2. From the highest level found in the text to the lowest odd level on
+     each line, reverse any contiguous sequence of characters that are at that
+     level or higher.
+     */
+
+    // find highest level & lowest odd level
+
+    var highestLevel = -1;
+    var lowestOddLevel = 99;
+    for (var i = 0, ii = levels.length; i < ii; ++i) {
+      var level = levels[i];
+      if (highestLevel < level)
+        highestLevel = level;
+      if (lowestOddLevel > level && isOdd(level))
+        lowestOddLevel = level;
+    }
+
+    // now reverse between those limits
+
+    for (var level = highestLevel; level >= lowestOddLevel; --level) {
+      // find segments to reverse
+      var start = -1;
+      for (var i = 0, ii = levels.length; i < ii; ++i) {
+        if (levels[i] < level) {
+          if (start >= 0) {
+            reverseValues(chars, start, i);
+            start = -1;
+          }
+        } else if (start < 0) {
+          start = i;
+        }
+      }
+      if (start >= 0) {
+        reverseValues(chars, start, levels.length);
+      }
+    }
+
+    /*
+     L3. Combining marks applied to a right-to-left base character will at this
+     point precede their base character. If the rendering engine expects them to
+     follow the base characters in the final display process, then the ordering
+     of the marks and the base character must be reversed.
+     */
+
+    // don't bother for now
+
+    /*
+     L4. A character that possesses the mirrored property as specified by
+     Section 4.7, Mirrored, must be depicted by a mirrored glyph if the resolved
+     directionality of that character is R.
+     */
+
+    // don't mirror as characters are already mirrored in the pdf
+
+    // Finally, return string
+
+    var result = '';
+    for (var i = 0, ii = chars.length; i < ii; ++i) {
+      var ch = chars[i];
+      if (ch != '<' && ch != '>')
+        result += ch;
+    }
+    return result;
+  });
 })();
 
 }).call((typeof window === 'undefined') ? this : window);

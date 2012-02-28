@@ -1,7 +1,9 @@
 require('jquery');
+require('jquery.transit');
 require('ember');
 require('ember-data');
 require('ember-touch');
+require('ember-mk');
 require('alfresco');
 require('copresent/pdf/main');
 require('copresent/core');
