@@ -34,7 +34,7 @@ PDF.Controller = Ember.ArrayController.extend({
     content: [],
     _renderQueue: [],
     processor: null,
-    _MAX_RENDERS: 2,
+    _MAX_RENDERS: 1,
     inProcessRenders: 0,
     _RENDER_INTERVAL: 1500,
 
@@ -46,6 +46,7 @@ PDF.Controller = Ember.ArrayController.extend({
         console.log('PDFDoc GetPDF called');
 
         // The worker is defined in the main pdf.js script
+        // TODO Move workerSrc and other config parameters to a separate config block.
         PDFJS.workerSrc = '/assets/pdf.js';
         //PDFJS.disableWorker = true;
 
@@ -139,7 +140,8 @@ PDF.PageView = Ember.View.extend({
         //console.log('Page Element Inserted');
         var elementId = '#'+this.get('elementId');
         var page = this.get('content').get('page');
-        // TODO Defer rendering to a "render queue" that limits how many pages are rendered at once.
+
+        // Defer rendering to a "render queue" that limits how many pages are rendered at once.
         Ember.run.next(function(){
             var canvas = $(elementId)[0];
             var context = canvas.getContext('2d');
@@ -172,6 +174,8 @@ PDF.manager = Ember.StateManager.create({
         loadDocument: function(sm, ctx) {
             console.log('PDF Load Document Event Received');
 
+            var scale = ctx.scale || 1.5;
+
             var success = function (data) {
                 sm.goToState('loaded');
 
@@ -180,7 +184,7 @@ PDF.manager = Ember.StateManager.create({
                 }
             };
 
-            sm.get('controller').getPDF(ctx.url, 1.0, ctx.progress, ctx.error, success);
+            sm.get('controller').getPDF(ctx.url, scale, ctx.progress, ctx.error, success);
         }
     }),
 

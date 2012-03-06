@@ -12,7 +12,11 @@ App.startState = Ember.State.create({
         showPresenterLogin: function() {
         	Ember.Logger.log('showPresenterLogin');
         	App.stateManager.goToState('start.gettingPresenterCredentials');
-        }
+        },
+		
+		showSessionSelect: function() {
+			App.stateManager.goToState('start.gettingViewerSessionId')
+		}
     }),
 
     gettingPresenterCredentials: Ember.ViewState.create({
@@ -47,7 +51,27 @@ App.startState = Ember.State.create({
 			} // end enter()
 		})
 		
-    })
+    }),
+	
+    gettingViewerSessionId: Ember.ViewState.create({
+    	view: SC.View.extend({
+    		templateName: 'copresent/~templates/viewer_session_select'
+    	}),
+		
+		joinSession: function() {
+			App.stateManager.goToState('start.gettingViewerSessionId.joiningSession');
+		},
+		
+		joiningSession: Ember.State.create({
+			enter: function(sm) {
+				now.joinSession(sm.get('sessionId'));
+				
+				Ember.run.next(function(){
+					sm.goToState('viewer.loadDocument');
+				});
+			}
+		})
+	})
 
 });
 

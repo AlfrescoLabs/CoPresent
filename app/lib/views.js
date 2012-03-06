@@ -1,17 +1,14 @@
-require('copresent/core');
-require('copresent/state_manager');
-
 App.tappable = Ember.Mixin.create({
     tapEnd: function(recognizer) {
-        console.log('TAP');
+        //console.log('TAP');
         this.click();
     }
 });
 
 App.SiteSelectorView = Ember.View.extend(App.tappable, {
     click: function(){
-        console.log('click');
-        console.log(App.stateManager.get('currentState'));
+        //console.log('click');
+        //console.log(App.stateManager.get('currentState'));
         App.stateManager.send('siteSelected',{node: this.get('content')});
     }
 });
@@ -27,6 +24,40 @@ App.DocumentSelectorView = Ember.View.extend(App.tappable, {
         App.stateManager.send('documentSelected',{node: this.get('content')});
     }
 });
+
+App.NavigationView = Ember.View.extend({
+    templateName: 'copresent/~templates/navigation',
+    tagName: 'nav',
+    classNames: ['navbar', 'navbar-fixed-top']
+});
+
+App.NavButton = Ember.View.extend(Ember.TargetActionSupport, {
+    classNames: ['btn-navbar'],
+    tagName: 'a',
+    name: 'unnamed',
+	target: 'App.navigationController',
+	isVisible:false,
+    propagateEvents: false,
+
+    click: function() {
+      // Actually invoke the button's target and action.
+      // This method comes from the Ember.TargetActionSupport mixin.
+      this.triggerAction();
+
+      return this.get('propagateEvents');
+    },
+	
+    init: function() {
+        this._super();
+
+        var target = Ember.getPath(this.get('target'));
+			
+		if (target) {
+        	target.set(this.get('name'), this);
+		}		
+    }
+});
+
 
 /*App.SwipeView = Mk.SwipeView.extend({
     init: function() {
@@ -56,23 +87,17 @@ App.SwipeView = Ember.CollectionView.extend({
     init: function() {
         //var items = this.get('childViews');
         this._super();
-        console.log('!!!!!!');
         var _self = this;
         Ember.run.next(function(){
 
-            console.log('init ');
+            //console.log('init ');
             var items = _self.get('content');
-            console.log(items);
+            //console.log(items);
 
 
             if (items) {
-
-                console.log('Length: ', items.get('length'));
-                console.log(typeof(items));
-
                 var length = items.get('length');
                 if (length > 0) {
-                    console.log('Making first item visible');
                     items.objectAt(0).set('isVisible', true);
                 }
             }
@@ -83,7 +108,6 @@ App.SwipeView = Ember.CollectionView.extend({
     },
 
     arrayContentDidChange: function(content,start,removed,added) {
-        console.log('******arrayContentDidChange');
         this._super(content,start,removed,added);
         //var items = this.get('content');
 
@@ -102,14 +126,14 @@ App.SwipeView = Ember.CollectionView.extend({
         var currentIdx = this.get('nowShowingIdx');
         var idx = currentIdx + relIdx;
 
-        idx = (idx > length) ? length-1 : idx;
+        idx = (idx >= length) ? length-1 : idx;
         idx = (idx < 0) ? 0 : idx;
 
         this.set('nowShowingIdx', idx);
+		console.log('View nowShowingIdx: ' + this.get('nowShowingIdx'));
 
         items.objectAt(currentIdx).set('isVisible', false);
         items.objectAt(idx).set('isVisible', true);
-
     },
 
     showNext: function(){
@@ -146,7 +170,5 @@ App.SwipeItemView = PDF.PageView.extend({
 
     init: function() {
         this._super();
-        console.log('SwipeItemView');
-        console.log(this.get('isVisible'));
     }
 });

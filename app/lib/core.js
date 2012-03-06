@@ -1,6 +1,25 @@
 App = Ember.Application.create({
-    VERSION: '0.1'  
+    VERSION: '0.1',
+	
+	ready: function() {
+		this._super();
+		
+		now.loadDocument = function(url) {
+	
+		};
+
+		now.changePage = function(num) {
+	
+		};
+		
+		now.joinedRoom = function(sessionId) {
+			console.log('Session ID: ' + sessionId);
+			App.stateManager.set('sessionId', sessionId);
+		};	
+	}
 });
+
+require('copresent/views');
 
 App.CONFIG = {
     alfresco: {
@@ -66,7 +85,7 @@ App.Folder = Ember.ArrayProxy.extend({
             var items = data.items;
             var len = data.totalRecords;
             for (var i=0;i<len;i++) {
-                console.log(items[i]);
+                //console.log(items[i]);
 			    _self.pushObject(App.Node.create({node:items[i]}));
             }
 		});
@@ -80,7 +99,7 @@ App.SiteController = Ember.ArrayProxy.extend({
 	init: function() {
 		var _self = this;
 		App.alf.getSites(function(data){
-			console.log('Getting Sites '+data.length);
+			//console.log('Getting Sites '+data.length);
 			_self.set('content', data);
 		});
 	},
@@ -93,3 +112,46 @@ App.SiteController = Ember.ArrayProxy.extend({
 App.DocumentController = Ember.Object.extend({
     isDocumentLoaded: false
 });
+
+App.set('navigationController', Ember.Object.create({
+
+    rootElement: '#main',
+
+    navigationView: null,
+
+    navItems: null,
+
+    init: function() {
+        this._super();
+        this.set('navigationView', App.NavigationView.create());
+    },
+
+    appendNav: function() {
+        this.get('navigationView').appendTo(this.get('rootElement'));
+    },
+
+    showNav: function() {
+        this.get('navigationView').set('isVisible', true);
+    },
+
+    hideNav: function() {
+        this.get('navigationView').set('isVisible', false);
+    },
+
+    toggleDocumentSelect: function() {
+		console.log('ToggleDocumentSelect');
+    },
+
+    exit: function() {
+
+    },
+	
+	nextPage: function() {
+		App.stateManager.send('nextPage');
+	},
+	
+	previousPage: function() {
+		App.stateManager.send('previousPage');
+	}
+
+}));

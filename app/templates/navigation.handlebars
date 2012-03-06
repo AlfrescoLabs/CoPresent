@@ -1,0 +1,22 @@
+<div class="navbar-inner">
+<div class="container">
+  <a class="brand" href="#"><strong>co</strong>present</a>
+
+  <ul class="nav">
+      <li>{{#view App.NavButton name="docSelectButton" action="toggleDocumentSelect" isVisible=true}}
+	  	<i class="modern-icon modern-icon-white">4</i>		
+	  {{/view}}</li>
+	  
+      <li>{{#view App.NavButton name="previousPageButton" action="previousPage" isVisible=true}}
+	  	<i class="modern-icon modern-icon-white">&lt;</i>
+	  {{/view}}</li>
+	  
+      <li>{{#view App.NavButton name="nextPageButton" action="nextPage" isVisible=true}}
+	  	<i class="modern-icon modern-icon-white">&gt;</i>
+	  {{/view}}</li>
+	  <li><a href="#">{{App.stateManager.sessionId}}</a></li>
+  </ul>
+  
+  <i class="alf-nav-brand">&nbsp;</i>
+</div>
+</div>

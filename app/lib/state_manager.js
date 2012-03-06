@@ -29,18 +29,22 @@ App.set('stateManager', Ember.StateManager.create({
     siteTitle: null,
     user: App.User.create(),
     isLoggedIn:false,
+	sessionId: '',
+    
+    navController: App.navigationController,
 
     init: function() {
         this._super();
 
         this.set('isDocumentLoadedBinding', 'App.stateManager.documentController.isDocumentLoaded');
+        this.get('navController').appendNav();
     },
 
     siteSelected: function(sm, ctx) {
 
         this.set('siteName', ctx.node.shortName);
 
-        Ember.Logger.log('site has been selected '+ this.get('siteController'));
+        //Ember.Logger.log('site has been selected '+ this.get('siteController'));
         var folder = this.siteController.getFolder({
             siteId: ctx.node.shortName,
             folderPath: '/'
@@ -50,8 +54,8 @@ App.set('stateManager', Ember.StateManager.create({
     },
 
     folderSelected: function(sm, ctx) {
-        Ember.Logger.log('Folder Selected '+ctx.get('name'));
-        Ember.Logger.log(ctx);
+        //Ember.Logger.log('Folder Selected '+ctx.get('name'));
+        //Ember.Logger.log(ctx);
         var currentFolder = sm.get('currentFolder');
         sm.folderStack.pushObject(currentFolder);
         var newPath = currentFolder.get('folderPath')+'/'+ctx.get('name');
@@ -102,6 +106,7 @@ App.set('stateManager', Ember.StateManager.create({
         var _self = this;
         var cfg = {
             url: url,
+            scale: 2.0,
             success: function() {
                 Ember.Logger.log('Document has been loaded.');
                 _self.set('isDocumentLoaded', true);

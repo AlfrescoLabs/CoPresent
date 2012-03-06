@@ -1,0 +1,16 @@
+<div class="row">
+<div class="span4">&nbsp;</div>
+<div class="span4 well">
+	Meeting Passcode
+	
+	<p>
+		{{view Ember.TextField class="input full-width" placeholder="Passcode" valueBinding="App.stateManager.sessionId" focus="true"}}
+	</p>
+	<div class="form-actions">
+		{{#view Ember.Button action="joinSession" target="App.stateManager" class="btn btn-primary"}}Join{{/view}}
+
+		{{#view Ember.Button class="btn"}}Cancel{{/view}}
+	</div>
+</div>
+<div class="span4"/>&nbsp;</div>
+</div>
