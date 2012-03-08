@@ -5,17 +5,27 @@ App = Ember.Application.create({
 		this._super();
 		
 		now.loadDocument = function(url) {
-	
+			App.stateManager.set('documentUrl', now.documentUrl);
+			App.stateManager.set('isDocumentLoaded', false);
+			App.stateManager.send('loadDocument', url);
 		};
 
 		now.changePage = function(num) {
-	
+			App.stateManager.send('showPage', num);
 		};
 		
-		now.joinedRoom = function(sessionId) {
-			console.log('Session ID: ' + sessionId);
+		now.presenterJoinedRoom = function(sessionId) {
+			console.log('Presenter Session ID: ' + sessionId);
 			App.stateManager.set('sessionId', sessionId);
-		};	
+			now.distributeLoadDocument(App.stateManager.documentUrl)
+		};
+		
+		now.viewerJoinedRoom = function(sessionId, documentUrl) {
+			console.log('Viewer Session ID: ' + sessionId);
+			App.stateManager.set('sessionId', sessionId);
+			App.stateManager.set('documentUrl', documentUrl);
+			App.stateManager.goToState('viewer');
+		}	
 	}
 });
 

@@ -64,6 +64,7 @@ App.set('presenterState', Ember.State.create({
         },
 		
 		nextPage: function() {
+			console.log('next');
 			this.get('view').showNext();
 		},
 		

@@ -40,6 +40,7 @@ nowjs.on('connect', function(){
 everyone.now.createSession = function() {
 	
 	var roomId = generateSessionId();
+	
 	console.log(this.user.clientId + ' created room ' + roomId);
 
 	var clientId = this.user.clientId;
@@ -55,7 +56,7 @@ everyone.now.createSession = function() {
 	nowjs.getGroup(roomId).addUser(clientId);
 	
 	this.now.room = roomId;
-	this.now.joinedRoom(roomId);
+	this.now.presenterJoinedRoom(roomId);
 	console.log(this.user.clientId + ' created room ' + roomId);	
 };
 
@@ -73,15 +74,18 @@ everyone.now.joinSession = function(roomId) {
 	nowjs.getGroup(roomId).addUser(clientId);
 	
 	this.now.room = roomId;
-	this.now.joinedRoom(roomId);
+	this.now.viewerJoinedRoom(roomId, rooms[roomId].documentUrl);
+	this.now.documentUrl = rooms[roomId].documentUrl;
 	
 	console.log(this.user.clientId + ' joined room ' + roomId);	
 };
 
 everyone.now.distributeLoadDocument = function(url) {
 	console.log('Room '+this.now.room +': '+this.user.clientId + ' sent loadDocument ' + url);
+	var roomId = this.now.room;
 	this.now.documentUrl = url;
-	nowjs.getGroup(this.now.room).now.loadDocument(url);
+	rooms[roomId].documentUrl = url;
+	nowjs.getGroup(roomId).now.loadDocument(url);
 };
 
 everyone.now.distributePageChange = function(num) {

@@ -90,10 +90,7 @@ App.SwipeView = Ember.CollectionView.extend({
         var _self = this;
         Ember.run.next(function(){
 
-            //console.log('init ');
             var items = _self.get('content');
-            //console.log(items);
-
 
             if (items) {
                 var length = items.get('length');
@@ -109,7 +106,6 @@ App.SwipeView = Ember.CollectionView.extend({
 
     arrayContentDidChange: function(content,start,removed,added) {
         this._super(content,start,removed,added);
-        //var items = this.get('content');
 
         if (content) {
             var length = content.get('length');
@@ -119,7 +115,15 @@ App.SwipeView = Ember.CollectionView.extend({
         }
     },
 
-    swap: function(relIdx) {
+    showPage: function(idx) {
+        var items = this.get('content');
+		var currentIdx = this.get('nowShowingIdx');
+		this.set('nowShowingIdx', idx);
+        items.objectAt(currentIdx).set('isVisible', false);
+        items.objectAt(idx).set('isVisible', true);
+    		
+    },
+	swap: function(relIdx) {
         var items = this.get('content');
         var length = items.get('length');
 

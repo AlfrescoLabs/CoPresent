@@ -58,14 +58,14 @@ App.startState = Ember.State.create({
     		templateName: 'copresent/~templates/viewer_session_select'
     	}),
 		
-		joinSession: function() {
+		joinSession: function(sm) {			
 			App.stateManager.goToState('start.gettingViewerSessionId.joiningSession');
 		},
 		
 		joiningSession: Ember.State.create({
 			enter: function(sm) {
 				now.joinSession(sm.get('sessionId'));
-				
+				console.log('Joining Session ' + sm.get('sessionId'));
 				Ember.run.next(function(){
 					sm.goToState('viewer.loadDocument');
 				});

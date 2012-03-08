@@ -23,6 +23,7 @@ App.set('stateManager', Ember.StateManager.create({
     currentFolder: null,
     documentController: PDF.manager.controller,
     currentDocument: null,
+	documentUrl: null,
     isDocumentLoaded: false,
     currentPage: 0,
     siteController: null,
@@ -101,20 +102,21 @@ App.set('stateManager', Ember.StateManager.create({
         var url = prefix + protocol + '://' + host + '/' + serviceBase + pdfServiceUrl + '?alf_ticket=' + ticket;
 
         Ember.Logger.log('URL: ' + url);
-
+		this.set('documentUrl', url);
         this.set('currentDocument', ctx.node);
-        var _self = this;
-        var cfg = {
-            url: url,
-            scale: 2.0,
-            success: function() {
-                Ember.Logger.log('Document has been loaded.');
-                _self.set('isDocumentLoaded', true);
-                _self.goToState('presenter');
-            }
-        };
-
-        sm.get('pdfManager').send('loadDocument', cfg);
+		
+		var _self = this;
+		var cfg = {
+	            url: url,
+	            scale: 2.0,
+	            success: function() {
+	                Ember.Logger.log('Document has been loaded.');
+	                _self.set('isDocumentLoaded', true);
+	                _self.goToState('presenter');
+	            }
+			};
+		this.set('documentUrl', cfg.url);
+        this.get('pdfManager').send('loadDocument', cfg);
 
     }
 }));
