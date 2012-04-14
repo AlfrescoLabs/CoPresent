@@ -74,10 +74,11 @@ everyone.now.joinSession = function(roomId) {
 	nowjs.getGroup(roomId).addUser(clientId);
 	
 	this.now.room = roomId;
-	this.now.viewerJoinedRoom(roomId, rooms[roomId].documentUrl);
 	this.now.documentUrl = rooms[roomId].documentUrl;
+	this.now.viewerJoinedRoom(roomId, rooms[roomId].documentUrl);
 	
-	console.log(this.user.clientId + ' joined room ' + roomId);	
+	console.log(this.user.clientId + ' joined room ' + roomId);
+	//console.log(nowjs.getGroup(roomId).count());
 };
 
 everyone.now.distributeLoadDocument = function(url) {

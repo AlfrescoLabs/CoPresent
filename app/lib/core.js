@@ -7,7 +7,9 @@ App = Ember.Application.create({
 		now.loadDocument = function(url) {
 			App.stateManager.set('documentUrl', now.documentUrl);
 			App.stateManager.set('isDocumentLoaded', false);
-			App.stateManager.send('loadDocument', url);
+			Ember.run.next(function(){
+				App.stateManager.send('loadDocument', url);
+			});			
 		};
 
 		now.changePage = function(num) {
@@ -22,9 +24,13 @@ App = Ember.Application.create({
 		
 		now.viewerJoinedRoom = function(sessionId, documentUrl) {
 			console.log('Viewer Session ID: ' + sessionId);
-			App.stateManager.set('sessionId', sessionId);
-			App.stateManager.set('documentUrl', documentUrl);
-			App.stateManager.goToState('viewer');
+			var currentSessionId = App.stateManager.get('sessionId');
+			//if (sessionId !== currentSessionId) {
+				console.log('Document URL: ' + documentUrl);
+				App.stateManager.set('sessionId', sessionId);
+				App.stateManager.set('documentUrl', documentUrl);
+				App.stateManager.goToState('viewer');									
+				//}
 		}	
 	}
 });

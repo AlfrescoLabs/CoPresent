@@ -7,7 +7,6 @@ App.viewerState = Ember.State.create({
 		enter: function(sm) {
 			Ember.run.next(function(){
 				if (!sm.get('isDocumentLoaded')) {
-
 					console.log('Viewing ' + sm.get('documentUrl'));
 					sm.send('downloadDocument', sm.get('documentUrl'));
 				}
@@ -23,7 +22,10 @@ App.viewerState = Ember.State.create({
 	            success: function() {
 	                Ember.Logger.log('Document has been loaded.');
 	                sm.set('isDocumentLoaded', true);
-	                sm.goToState('viewer.viewingDocument');
+	                Ember.run.next(function(){
+						sm.goToState('viewer.viewingDocument');
+					});
+					
 	            }
 			};
 			
