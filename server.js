@@ -53,10 +53,11 @@ everyone.now.createSession = function() {
 	}
 	
 	nowjs.getGroup(oldRoomId).removeUser(clientId);
-	nowjs.getGroup(roomId).addUser(clientId);
+	var group = nowjs.getGroup(roomId).addUser(clientId);
 	
 	this.now.room = roomId;
 	this.now.presenterJoinedRoom(roomId);
+	group.now.pageNumber = 0;
 	console.log(this.user.clientId + ' created room ' + roomId);	
 };
 
@@ -71,11 +72,11 @@ everyone.now.joinSession = function(roomId) {
 	}
 	
 	nowjs.getGroup(oldRoomId).removeUser(clientId);
-	nowjs.getGroup(roomId).addUser(clientId);
+	var group = nowjs.getGroup(roomId).addUser(clientId);
 	
 	this.now.room = roomId;
 	this.now.documentUrl = rooms[roomId].documentUrl;
-	this.now.viewerJoinedRoom(roomId, rooms[roomId].documentUrl);
+	this.now.viewerJoinedRoom(roomId, rooms[roomId].documentUrl, (group.now.pageNumber || 0));
 	
 	console.log(this.user.clientId + ' joined room ' + roomId);
 	//console.log(nowjs.getGroup(roomId).count());
@@ -92,6 +93,7 @@ everyone.now.distributeLoadDocument = function(url) {
 everyone.now.distributePageChange = function(num) {
 	var group = nowjs.getGroup(this.now.room);
 	group.now.changePage(num);
+	group.now.pageNumber = num;
 	console.log('Room '+ group.groupName +': '+this.user.clientId + ' sent changePage ' + num);	
 };
 
