@@ -1,7 +1,7 @@
 require('copresent/core');
 
 App.viewerState = Ember.State.create({
-    initialSubstate: 'loadDocument',
+    initialState: 'loadDocument',
 	
 	loadDocument: Ember.State.create({
 		enter: function(sm) {

@@ -2,10 +2,15 @@ require('copresent/core');
 require('alfresco');
 
 App.startState = Ember.State.create({
-    initialSubstate: 'gettingUserRole',
+    initialState: 'gettingUserRole',
 
     gettingUserRole: Ember.ViewState.create({
-        view: SC.View.extend({
+		
+		enter: function(sm) {
+			Ember.Logger.log('gettingUserRole');
+		},
+		
+        view: Ember.View.extend({
             templateName: 'copresent/~templates/main_page'
         }),
 
@@ -20,7 +25,7 @@ App.startState = Ember.State.create({
     }),
 
     gettingPresenterCredentials: Ember.ViewState.create({
-    	view: SC.View.extend({
+    	view: Ember.View.extend({
     		templateName: 'copresent/~templates/presenter_login'
     	}),
 		
@@ -54,7 +59,7 @@ App.startState = Ember.State.create({
     }),
 	
     gettingViewerSessionId: Ember.ViewState.create({
-    	view: SC.View.extend({
+    	view: Ember.View.extend({
     		templateName: 'copresent/~templates/viewer_session_select'
     	}),
 		

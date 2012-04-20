@@ -2,7 +2,7 @@ require('copresent/core');
 require('alfresco');
 
 App.set('presenterState', Ember.State.create({
-    initialSubstate: 'start',
+    initialState: 'start',
 	documentLoaded: false,
 
     /* ***** STATES ***** */

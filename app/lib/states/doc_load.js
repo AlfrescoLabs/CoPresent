@@ -2,11 +2,11 @@ require('copresent/core');
 
 App.documentLoadingState = Ember.State.create({
 
-    initialSubstate: 'documentNotLoaded',
+    initialState: 'documentNotLoaded',
 
     documentNotLoaded: Ember.State.create({
 
-        initialSubstate: 'loadingDocument',
+        initialState: 'loadingDocument',
 
         loadingDocument: Ember.State.create({
 

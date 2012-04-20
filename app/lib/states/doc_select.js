@@ -2,7 +2,7 @@ require('copresent/core');
 
 App.set('documentSelectionState', Ember.State.create({
 
-    initialSubstate: 'browsingSites',
+    initialState: 'browsingSites',
 
     browsingSites: Ember.ViewState.create({
         view: Ember.View.create({
