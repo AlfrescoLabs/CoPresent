@@ -11,8 +11,7 @@ App.documentLoadingState = Ember.State.create({
         loadingDocument: Ember.State.create({
 
             enter: function() {
-
-
+				Ember.Logger.log('loadingDocument');
             }
 
 

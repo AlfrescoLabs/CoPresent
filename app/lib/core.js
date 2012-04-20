@@ -5,15 +5,22 @@ App = Ember.Application.create({
 		this._super();
 		now.ready(function() {
 			now.loadDocument = function(url) {
-				App.stateManager.set('documentUrl', now.documentUrl);
-				App.stateManager.set('isDocumentLoaded', false);
-				Ember.run.next(function(){
-					App.stateManager.send('loadDocument', url);
-				});			
+				var currentState = App.stateManager.getPath('currentState.name');
+				
+				if (currentState != 'presentingDocument') {
+					App.stateManager.set('documentUrl', now.documentUrl);
+					App.stateManager.set('isDocumentLoaded', false);
+					Ember.run.next(function(){
+						App.stateManager.send('loadDocument', url);
+					});
+				}			
 			};
 
 			now.changePage = function(num) {
-				App.stateManager.send('showPage', num);
+				var currentState = App.stateManager.getPath('currentState.name');				
+				if (currentState != 'presentingDocument') {				
+					App.stateManager.send('showPage', num);
+				}
 			};
 		
 			now.presenterJoinedRoom = function(sessionId) {
