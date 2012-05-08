@@ -53,7 +53,8 @@ everyone.now.createSession = function() {
 	}
 	
 	nowjs.getGroup(oldRoomId).removeUser(clientId);
-	var group = nowjs.getGroup(roomId).addUser(clientId);
+	var group = nowjs.getGroup(roomId);
+    group.addUser(clientId);
 	
 	this.now.room = roomId;
 	this.now.presenterJoinedRoom(roomId);
@@ -72,7 +73,8 @@ everyone.now.joinSession = function(roomId) {
 	}
 	
 	nowjs.getGroup(oldRoomId).removeUser(clientId);
-	var group = nowjs.getGroup(roomId).addUser(clientId);
+	var group = nowjs.getGroup(roomId);
+    group.addUser(clientId);
 	
 	this.now.room = roomId;
 	this.now.documentUrl = rooms[roomId].documentUrl;
